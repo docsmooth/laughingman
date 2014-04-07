@@ -5,7 +5,7 @@
   "capabilities": [ "configurable" ],
   "companyName": "@docsmooth",
   "versionCode": 1,
-  "versionLabel": "2.2.1",
+  "versionLabel": "2.6.3",
   "watchapp": {
     "watchface": %(watchface)s
   },
@@ -13,7 +13,17 @@
     "keep_battery_gauge": 0,
     "keep_bluetooth_indicator": 1,
     "second_hand": 2,
-    "hour_buzzer": 3
+    "hour_buzzer": 3,
+    "draw_mode": 4,
+    "chrono_dial": 5,
+    "sweep_seconds": 6,
+    "display_lang": 7,
+    "face_index" : 8,
+    "date_window_a": 9,
+    "date_window_b": 10,
+    "date_window_c": 11,
+    "date_window_d": 12,
+    "bluetooth_buzzer": 13
   },
   "resources": {
   "media": [
@@ -34,6 +44,11 @@
       "type": "png"
     },
     {
+      "name": "BATTERY_GAUGE_MASK",
+      "file": "battery_gauge_mask.png",
+      "type": "png"
+    },
+    {
       "name": "BLUETOOTH_DISCONNECTED",
       "file": "bluetooth_disconnected.png",
       "type": "png"
@@ -43,6 +58,12 @@
       "file": "bluetooth_connected.png",
       "type": "png"
     },
+    {
+      "name": "BLUETOOTH_MASK",
+      "file": "bluetooth_mask.png",
+      "type": "png"
+    },
+%(langData)s
 %(generatedMedia)s
     ]
   }

@@ -1,65 +1,149 @@
-// This name is displayed on the configuration title card.
+// This name is displayed on the configuration title window.
 var watch_name = "%(watchName)s";
+var show_chrono_dial = %(enableChronoDial)s;
+var enable_sweep_seconds = %(enableSweepSeconds)s;
+var num_faces = %(numFaces)s;
+var num_date_windows = %(numDateWindows)s;
 
 // Define the initial config default values.  These defaults are used
 // only if the Pebble is connected to the phone at the time of launch;
 // otherwise, the defaults in init_default_options() are used instead.
-var default_keep_battery_gauge = %(indicatorsAlways)s;
-var default_keep_bluetooth_indicator = %(indicatorsAlways)s;
-var default_second_hand = %(showSecondHand)s;
+var default_keep_battery_gauge = %(defaultBattery)s;
+var default_keep_bluetooth_indicator = %(defaultBluetooth)s;
+var default_second_hand = %(enableSecondHand)s;
 var default_hour_buzzer = %(enableHourBuzzer)s;
+var default_bluetooth_buzzer = 1;
+var default_draw_mode = 0;
+var default_chrono_dial = 1;
+var default_sweep_seconds = 0;
+var default_display_lang = 'en_US';
+var default_face_index = 0;
+var default_date_windows = %(defaultDateWindows)s;
 
-var keep_battery_gauge = localStorage.getItem(watch_name + ":keep_battery_gauge");
-if (!keep_battery_gauge) {
-    keep_battery_gauge = default_keep_battery_gauge;
+var keep_battery_gauge;
+var keep_bluetooth_indicator;
+var second_hand;
+var hour_buzzer;
+var bluetooth_buzzer;
+var draw_mode;
+var chrono_dial;
+var sweep_seconds;
+var display_lang;
+var face_index;
+var date_windows;
+
+function sent_ack(e) {
+    console.log("Message sent");
 }
-keep_battery_gauge = parseInt(keep_battery_gauge);
 
-var keep_bluetooth_indicator = localStorage.getItem(watch_name + ":keep_bluetooth_indicator");
-if (!keep_bluetooth_indicator) {
-    keep_bluetooth_indicator = default_keep_battery_gauge;
+function sent_nack(e) {
+    console.log("Message not sent: " + e.error);
+    //console.log(e.error.message);
 }
-keep_bluetooth_indicator = parseInt(keep_bluetooth_indicator);
 
-var second_hand = localStorage.getItem(watch_name + ":second_hand");
-if (!second_hand) {
-    second_hand = default_second_hand;
+function logLocalStorage() {
+    var keys = Object.keys(localStorage);
+    console.log("  localStorage = {");
+    for (var key in keys) {
+	console.log('      "' + keys[key] + '" : ' + localStorage[keys[key]] + ',');
+    }
+    console.log("  }");
 }
-second_hand = parseInt(second_hand);
 
-var hour_buzzer = localStorage.getItem(watch_name + ":hour_buzzer");
-if (!hour_buzzer) {
-    hour_buzzer = default_hour_buzzer;
+function getIntFromStorage(keyword, default_value) {
+    var value = localStorage.getItem(watch_name + ":" + keyword);
+    if (!value) {
+	value = default_value;
+    }
+    value = parseInt(value);
+    if (isNaN(value)) {
+	value = default_value;
+    }
+
+    console.log("   " + keyword + ": " + value);
+    return value;
 }
-hour_buzzer = parseInt(hour_buzzer);
 
-Pebble.addEventListener("ready", function() {
+function getStringFromStorage(keyword, default_value) {
+    var value = localStorage.getItem(watch_name + ":" + keyword);
+    if (!value) {
+	value = default_value;
+    }
+
+    console.log("   " + keyword + ": '" + value + "'");
+    return value;
+}
+
+var initialized = false;
+function initialize() {
+    console.log("initialize: " + initialized);
+    if (initialized) {
+	return;
+    }
+
+    logLocalStorage();
+
+    keep_battery_gauge = getIntFromStorage('keep_battery_gauge', default_keep_battery_gauge);
+    keep_bluetooth_indicator = getIntFromStorage('keep_bluetooth_indicator', default_keep_bluetooth_indicator);
+    second_hand = getIntFromStorage('second_hand', default_second_hand);
+    hour_buzzer = getIntFromStorage('hour_buzzer', default_hour_buzzer);
+    bluetooth_buzzer = getIntFromStorage('bluetooth_buzzer', default_bluetooth_buzzer);
+    draw_mode = getIntFromStorage('draw_mode', default_draw_mode);
+    chrono_dial = getIntFromStorage('chrono_dial', default_chrono_dial);
+    sweep_seconds = getIntFromStorage('sweep_seconds', default_sweep_seconds);
+    display_lang = getStringFromStorage('display_lang', default_display_lang);
+    face_index = getIntFromStorage('face_index', default_face_index);
+    date_windows = [];
+    for (var i = 0; i < num_date_windows; ++i) {
+	var sym = 'date_window_' + String.fromCharCode(97 + i);
+	date_windows.push(getIntFromStorage(sym, default_date_windows[i]));
+    }
+
+    // At startup, send the current configuration to the Pebble--the
+    // phone storage keeps the authoritative state.  We delay by 1
+    // second to give the Pebble a chance to set itself up for
+    // receiving messages.
+    setTimeout(function() {
+	var configuration = {
+	    'keep_battery_gauge' : keep_battery_gauge,
+	    'keep_bluetooth_indicator' : keep_bluetooth_indicator,
+	    'second_hand' : second_hand,
+	    'hour_buzzer' : hour_buzzer,
+	    'bluetooth_buzzer' : bluetooth_buzzer,
+	    'draw_mode' : draw_mode,
+	    'chrono_dial' : chrono_dial,
+	    'sweep_seconds' : sweep_seconds,
+	    'display_lang' : display_lang,
+	    'face_index' : face_index,
+	};
+	for (var i = 0; i < num_date_windows; ++i) {
+	    var sym = 'date_window_' + String.fromCharCode(97 + i);
+	    configuration[sym] = date_windows[i];
+	}
+   	console.log("sending init config: " + JSON.stringify(configuration));
+	Pebble.sendAppMessage(configuration, sent_ack, sent_nack);
+    }, 1000)
+}
+
+Pebble.addEventListener("ready", function(e) {
     console.log("ready");
-    console.log("   keep_battery_gauge: " + keep_battery_gauge);
-    console.log("   keep_bluetooth_indicator: " + keep_bluetooth_indicator);
-    console.log("   second_hand: " + second_hand);
-    console.log("   hour_buzzer: " + hour_buzzer);
-
-	// At startup, send the current configuration to the Pebble--the
-	// phone storage keeps the authoritative state.  We delay by 1
-	// second to give the Pebble a chance to set itself up for
-	// receiving messages.
-	setTimeout(function() {
-		var configuration = {
-			'keep_battery_gauge' : keep_battery_gauge,
-			'keep_bluetooth_indicator' : keep_bluetooth_indicator,
-			'second_hand' : second_hand,
-			'hour_buzzer' : hour_buzzer,
-		};
-   	        console.log("sending init config: " + JSON.stringify(configuration));
-		Pebble.sendAppMessage(configuration);
-	}, 1000)
-
-    initialized = true;
+    initialize();
 });
 
 Pebble.addEventListener("showConfiguration", function(e) {
-    var url = "http://www.ddrose.com/pebble/rosewright_configure.html?watch_name=" + watch_name + "&keep_battery_gauge=" + keep_battery_gauge + "&keep_bluetooth_indicator=" + keep_bluetooth_indicator + "&second_hand=" + second_hand + "&hour_buzzer=" + hour_buzzer;
+    console.log("showConfiguration starting");
+    initialize();
+    var url = "http://www.ddrose.com/pebble/rosewright_2_6_2_configure.html?watch_name=" + encodeURIComponent(watch_name) + "&keep_battery_gauge=" + keep_battery_gauge + "&keep_bluetooth_indicator=" + keep_bluetooth_indicator + "&second_hand=" + second_hand + "&hour_buzzer=" + hour_buzzer + "&bluetooth_buzzer=" + bluetooth_buzzer + "&draw_mode=" + draw_mode + "&display_lang=" + display_lang + "&face_index=" + face_index + "&num_faces=" + num_faces + "&num_date_windows=" + num_date_windows;
+    if (show_chrono_dial) {
+	url += "&chrono_dial=" + chrono_dial
+    }
+    if (enable_sweep_seconds) {
+	url += "&sweep_seconds=" + sweep_seconds
+    }
+    for (var i = 0; i < num_date_windows; ++i) {
+	var sym = 'date_window_' + String.fromCharCode(97 + i);
+	url += "&" + sym + "=" + date_windows[i];
+    }
     console.log("showConfiguration: " + url);
     var result = Pebble.openURL(url);
     console.log("openURL result: " + result);
@@ -70,19 +154,48 @@ Pebble.addEventListener("webviewclosed", function(e) {
     console.log(e.type);
     console.log(e.response);
 
-    var configuration = JSON.parse(e.response);
-    console.log("sending runtime config: " + JSON.stringify(configuration));
-    Pebble.sendAppMessage(configuration);
-    
-    keep_battery_gauge = configuration["keep_battery_gauge"];
-    localStorage.setItem(watch_name + ":keep_battery_gauge", keep_battery_gauge);
-    
-    keep_bluetooth_indicator = configuration["keep_bluetooth_indicator"];
-    localStorage.setItem(watch_name + ":keep_bluetooth_indicator", keep_bluetooth_indicator);
-    
-    second_hand = configuration["second_hand"];
-    localStorage.setItem(watch_name + ":second_hand", second_hand);
-    
-    hour_buzzer = configuration["hour_buzzer"];
-    localStorage.setItem(watch_name + ":hour_buzzer", hour_buzzer);
+    if (e.response && e.response != 'CANCELLED') {
+	var configuration = JSON.parse(e.response);
+	console.log("sending runtime config: " + JSON.stringify(configuration));
+	Pebble.sendAppMessage(configuration, sent_ack, sent_nack);
+	
+	keep_battery_gauge = configuration["keep_battery_gauge"];
+	localStorage.setItem(watch_name + ":keep_battery_gauge", keep_battery_gauge);
+	
+	keep_bluetooth_indicator = configuration["keep_bluetooth_indicator"];
+	localStorage.setItem(watch_name + ":keep_bluetooth_indicator", keep_bluetooth_indicator);
+	
+	second_hand = configuration["second_hand"];
+	localStorage.setItem(watch_name + ":second_hand", second_hand);
+	
+	hour_buzzer = configuration["hour_buzzer"];
+	localStorage.setItem(watch_name + ":hour_buzzer", hour_buzzer);
+	
+	bluetooth_buzzer = configuration["bluetooth_buzzer"];
+	localStorage.setItem(watch_name + ":bluetooth_buzzer", bluetooth_buzzer);
+	
+	draw_mode = configuration["draw_mode"];
+	localStorage.setItem(watch_name + ":draw_mode", draw_mode);
+	
+	chrono_dial = configuration["chrono_dial"];
+	localStorage.setItem(watch_name + ":chrono_dial", chrono_dial);
+	
+	sweep_seconds = configuration["sweep_seconds"];
+	localStorage.setItem(watch_name + ":sweep_seconds", sweep_seconds);
+	
+	display_lang = configuration["display_lang"];
+	localStorage.setItem(watch_name + ":display_lang", display_lang);
+
+	face_index = configuration["face_index"];
+	localStorage.setItem(watch_name + ":face_index", face_index);
+
+	date_windows = [];
+	for (var i = 0; i < num_date_windows; ++i) {
+	    var sym = 'date_window_' + String.fromCharCode(97 + i);
+	    date_windows.push(configuration[sym]);
+	    localStorage.setItem(watch_name + ":" + sym, date_windows[i]);
+	}
+
+	logLocalStorage();
+    }
 });

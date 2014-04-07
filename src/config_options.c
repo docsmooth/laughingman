@@ -1,6 +1,5 @@
 #include "config_options.h"
-#include "hand_table.h"
-#include "../resources/generated_config.h"
+#include "wright.h"
 
 ConfigOptions config;
 
@@ -9,17 +8,54 @@ void init_default_options() {
   // that these defaults are used only if the Pebble is not connected
   // to the phone at the time of launch; otherwise, the defaults in
   // pebble-js-app.js are used instead.
-  config.keep_battery_gauge = SHOW_BATTERY_GAUGE_ALWAYS;
-  config.keep_bluetooth_indicator = SHOW_BLUETOOTH_ALWAYS;
-  config.second_hand = SHOW_SECOND_HAND;
-  config.hour_buzzer = ENABLE_HOUR_BUZZER;
+  static ConfigOptions default_options = {
+    DEFAULT_BATTERY_GAUGE,
+    DEFAULT_BLUETOOTH,
+    ENABLE_SECOND_HAND,
+    ENABLE_HOUR_BUZZER,
+    true,
+    false,
+    CDM_tenths,
+    false,
+    0,
+    0,
+    { DEFAULT_DATE_WINDOWS },
+  };
+  
+  config = default_options;
 }
 
+void sanitize_config() {
+  // Ensures that the newly-loaded config parameters are within a
+  // reasonable range for the program and won't cause crashes.
+  config.draw_mode = config.draw_mode & 1;
+  config.chrono_dial = config.chrono_dial % (CDM_dual + 1);
+  config.display_lang = config.display_lang % num_langs;
+  config.face_index = config.face_index % NUM_FACES;
+  for (int i = 0; i < NUM_DATE_WINDOWS; ++i) {
+    config.date_windows[i] = config.date_windows[i] % (DWM_ampm + 1);
+  }
+}
+
+#ifndef NDEBUG
 const char *show_config() {
-  static char buffer[48];
-  snprintf(buffer, 48, "bat: %d, bt: %d, sh: %d, hb: %d", config.keep_battery_gauge, config.keep_bluetooth_indicator, config.second_hand, config.hour_buzzer);
+#define CONFIG_BUFFER_SIZE 100
+  static char buffer[CONFIG_BUFFER_SIZE];
+  snprintf(buffer, CONFIG_BUFFER_SIZE, "bat: %d, bt: %d, sh: %d, hb: %d, bb: %d, dm: %d, cd: %d, sw: %d, dl: %d, fi: %d, dw: ", config.keep_battery_gauge, config.keep_bluetooth_indicator, config.second_hand, config.hour_buzzer, config.bluetooth_buzzer, config.draw_mode, config.chrono_dial, config.sweep_seconds, config.display_lang, config.face_index);
+
+  if (NUM_DATE_WINDOWS > 0) {
+    char b2[12];
+    snprintf(b2, 12, "%d", config.date_windows[0]);
+    strncat(buffer, b2, CONFIG_BUFFER_SIZE);
+    for (int i = 1; i < NUM_DATE_WINDOWS; ++i) {
+      snprintf(b2, 12, ",%d", config.date_windows[i]);
+      strncat(buffer, b2, CONFIG_BUFFER_SIZE);
+    }
+  }
+  
   return buffer;
 }
+#endif  // NDEBUG
 
 void save_config() {
   int wrote = persist_write_data(PERSIST_KEY, &config, sizeof(config));
@@ -34,12 +70,20 @@ void load_config() {
   init_default_options();
 
   ConfigOptions local_config;
-  if (persist_read_data(PERSIST_KEY, &local_config, sizeof(local_config)) == sizeof(local_config)) {
+  int read_size = persist_read_data(PERSIST_KEY, &local_config, sizeof(local_config));
+  if (read_size == sizeof(local_config)) {
     config = local_config;
-    app_log(APP_LOG_LEVEL_INFO, __FILE__, __LINE__, "Loaded config: %s", show_config());
+    app_log(APP_LOG_LEVEL_INFO, __FILE__, __LINE__, "Loaded config (%d, %d): %s", PERSIST_KEY, sizeof(config), show_config());
   } else {
-    app_log(APP_LOG_LEVEL_INFO, __FILE__, __LINE__, "Wrong previous config size or no previous config.");
+    app_log(APP_LOG_LEVEL_INFO, __FILE__, __LINE__, "No previous config (%d, %d): %d", PERSIST_KEY, sizeof(config), read_size);
   }
+
+  sanitize_config();
+}
+
+
+void dropped_config_handler(AppMessageResult reason, void *context) {
+  app_log(APP_LOG_LEVEL_INFO, __FILE__, __LINE__, "dropped message: 0x%04x", reason);
 }
 
 void receive_config_handler(DictionaryIterator *received, void *context) {
@@ -66,7 +110,52 @@ void receive_config_handler(DictionaryIterator *received, void *context) {
     config.hour_buzzer = hour_buzzer->value->int32;
   }
 
-  app_log(APP_LOG_LEVEL_INFO, __FILE__, __LINE__, "New config: %s", show_config());
+  Tuple *bluetooth_buzzer = dict_find(received, CK_bluetooth_buzzer);
+  if (bluetooth_buzzer != NULL) {
+    config.bluetooth_buzzer = bluetooth_buzzer->value->int32;
+  }
+
+  Tuple *draw_mode = dict_find(received, CK_draw_mode);
+  if (draw_mode != NULL) {
+    config.draw_mode = draw_mode->value->int32;
+  }
+
+  Tuple *chrono_dial = dict_find(received, CK_chrono_dial);
+  if (chrono_dial != NULL) {
+    config.chrono_dial = chrono_dial->value->int32;
+  }
+
+  Tuple *sweep_seconds = dict_find(received, CK_sweep_seconds);
+  if (sweep_seconds != NULL) {
+    config.sweep_seconds = sweep_seconds->value->int32;
+  }
+
+  Tuple *display_lang = dict_find(received, CK_display_lang);
+  if (display_lang != NULL) {
+    // Look for the matching language name in our table of known languages.
+    for (int li = 0; li < num_langs; ++li) {
+      if (strcmp(display_lang->value->cstring, lang_table[li].locale_name) == 0) {
+	config.display_lang = li;
+	break;
+      }
+    }
+  }
+
+  Tuple *face_index = dict_find(received, CK_face_index);
+  if (face_index != NULL) {
+    config.face_index = face_index->value->int32;
+  }
+
+  for (int i = 0; i < NUM_DATE_WINDOWS; ++i) {
+    Tuple *date_window_x = dict_find(received, CK_date_window_a + i);
+    if (date_window_x != NULL) {
+      config.date_windows[i] = date_window_x->value->int32;
+    }
+  }
+
+  sanitize_config();
+
+  app_log(APP_LOG_LEVEL_INFO, __FILE__, __LINE__, show_config());
   if (memcmp(&orig_config, &config, sizeof(config)) == 0) {
     app_log(APP_LOG_LEVEL_INFO, __FILE__, __LINE__, "Config is unchanged.");
   } else {
