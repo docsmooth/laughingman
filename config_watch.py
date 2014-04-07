@@ -103,6 +103,7 @@ watches = {
     'c' : ('Rosewright C', 'c', 'c', [0xA4, 0x9C, 0x82, 0xFD, 0x83, 0x0E, 0x48, 0xB4, 0xA8, 0x2E, 0x9C, 0xF8, 0xDA, 0x77, 0xF4, 0xC7]),
     'd' : ('Rosewright D', 'd', 'd', [0xA4, 0x9C, 0x82, 0xFD, 0x83, 0x0E, 0x48, 0xB4, 0xA8, 0x2E, 0x9C, 0xF8, 0xDA, 0x77, 0xF4, 0xC8]),
     'e' : ('Rosewright E', 'e', 'e', [0xA4, 0x9C, 0x82, 0xFD, 0x83, 0x0E, 0x48, 0xB4, 0xA8, 0x2E, 0x9C, 0xF8, 0xDA, 0x77, 0xF4, 0xC9]),
+    'f' : ('LaughingMan', 'f', 'f', [0xB6, 0xF8, 0xDF, 0x68, 0x08, 0x4B, 0x4C, 0xD1, 0xB4, 0x0E, 0x10, 0xFB, 0x29, 0xC7, 0x85, 0x2A]),
     }
     
 
@@ -190,6 +191,12 @@ hands = {
             [('b', [(0, -3), (0, -63)]),
              ]),
            ],
+    'f' : [('hour', ('f_hour_hand.png', 't', True, (18, 84), 1.0), None),
+           ('minute', ('f_minute_hand.png', 'b', True, (84, 84), 1.0), None),
+           ('second', ('d_second_hand.png', 'b', True, (14, -8), 0.24),
+            [('b', [(0, -3), (0, -63)]),
+             ]),
+           ],
     }
 
 # Table of face styles.  For each style, specify the following:
@@ -247,7 +254,12 @@ faces = {
         'bluetooth' : (11, 12, 'w'),
         'battery' : (113, 16, 'w'),
         },
-    }
+    'f' : {
+        'filename' : 'f_face.png',
+        'bluetooth' : (5, 6, 'b'),
+        'battery' : (119, 10, 'b'),
+    },
+         }
 
 makeChronograph = False
 showSecondHand = False
@@ -266,8 +278,8 @@ battery = None
 # Increase these numbers to show finer movement; decrease them to save
 # resource memory.
 numSteps = {
-    'hour' : 48,
-    'minute' : 60,
+    'hour' : 12,
+    'minute' : 30,
     'second' : 60,
     'chrono_minute' : 30,
     'chrono_second' : 60,
@@ -639,7 +651,7 @@ def configWatch():
     cyd = dict(map(lambda (hand, x, y): (hand, y), centers))
 
     # Get the stacking orders of the hands too.
-    implicitStackingOrder = ['hour', 'minute', 'second', 'chrono_minute', 'chrono_second', 'chrono_tenth']
+    implicitStackingOrder = ['minute', 'hour', 'second', 'chrono_minute', 'chrono_second', 'chrono_tenth']
     explicitStackingOrder = []
     for hand, x, y in centers:
         implicitStackingOrder.remove(hand)

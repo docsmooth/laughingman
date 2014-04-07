@@ -3,7 +3,7 @@
   "shortName": "%(watchName)s",
   "longName": "%(watchName)s",
   "capabilities": [ "configurable" ],
-  "companyName": "drwrose",
+  "companyName": "@docsmooth",
   "versionCode": 1,
   "versionLabel": "2.2.1",
   "watchapp": {
@@ -20,7 +20,7 @@
     {
       "menuIcon": true,
       "name": "ROSE_ICON",
-      "file": "rose_icon.png",
+      "file": "laughingman_icon.png",
       "type": "png"
     },
     {
