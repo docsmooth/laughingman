@@ -289,8 +289,12 @@ faces = {
         },
     'f' : {
         'filename' : 'f_face.png',
+        'date_window_a' : (15, 158, 'b'),
+        'date_window_b' : (119, 158, 'b'),
+        'date_window_filename' : ('date_window.png', 'date_window_mask.png'),
         'bluetooth' : (5, 6, 'b'),
         'battery' : (119, 10, 'b'),
+        'defaults': ['date:a', 'bluetooth', 'battery']
     },
          }
 
