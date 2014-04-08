@@ -290,7 +290,7 @@ faces = {
     'f' : {
         'filename' : 'f_face.png',
         'date_window_a' : (15, 158, 'b'),
-        'date_window_b' : (137, 158, 'b'),
+        'date_window_b' : (127, 158, 'b'),
         'date_window_filename' : ('date_window.png', 'date_window_mask.png'),
         'bluetooth' : (5, 6, 'b'),
         'battery' : (119, 10, 'b'),
@@ -315,8 +315,8 @@ defaults = []
 # Increase these numbers to show finer movement; decrease them to save
 # resource memory.
 numSteps = {
-    'hour' : 24,
-    'minute' : 30,
+    'hour' : 48,
+    'minute' : 60,
     'second' : 60,
     'chrono_minute' : 30,
     'chrono_second' : 60,
