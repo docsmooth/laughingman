@@ -188,8 +188,8 @@ hands = {
            ],
     'f' : [('hour', ('f_hour_hand.png', 't', True, (18, 84), 1.0), None),
            ('minute', ('f_minute_hand.png', 'b', True, (84, 84), 1.0), None),
-           ('second', ('d_second_hand.png', 'b', True, (14, -8), 0.24),
-            [('b', [(0, -3), (0, -63)]),
+           ('second', None, 
+            [('bb', [(-3, -54), (-3, -48), (3, -48), (3, -54)])
              ]),
            ],
     }
@@ -315,7 +315,7 @@ defaults = []
 # Increase these numbers to show finer movement; decrease them to save
 # resource memory.
 numSteps = {
-    'hour' : 48,
+    'hour' : 60,
     'minute' : 60,
     'second' : 60,
     'chrono_minute' : 30,
