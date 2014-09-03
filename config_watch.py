@@ -46,6 +46,9 @@ Options:
         Invert the hand color, for instance to apply a set of watch
         hands meant for a white face onto a black face.
 
+    -m
+        Exclude moon-phase support.
+
     -x
         Perform no RLE compression of images.
 
@@ -853,7 +856,33 @@ def makeIndicatorTable(generatedTable, generatedDefs, name, indicator, anonymous
         print >> generatedTable, "  },";
     else:
         print >> generatedTable, "};\n";
-        
+
+def makeMoon():
+    """ Returns the resource strings needed to include the moon phase icons. """
+    
+    moonPhaseEntry = """
+    {
+      "name": "MOON_%(cat)s_%(index)s",
+      "file": "%(rleFilename)s",
+      "type": "%(ptype)s"
+    },"""
+
+    resourceStr = ''
+
+    # moon_white_*.png is for when the moon is to be drawn as white pixels on black.
+    # moon_black_*.png is for when the moon is to be drawn as black pixels on white.
+    
+    for cat in ['white', 'black']:
+        for index in range(8):
+            rleFilename, ptype = make_rle('clock_faces/moon_%s_%s.png' % (cat, index), useRle = supportRle)
+            resourceStr += moonPhaseEntry % {
+                'cat' : cat.upper(),
+                'index' : index,
+                'rleFilename' : rleFilename,
+                'ptype' : ptype,
+                }
+
+    return resourceStr
         
 def configWatch():
     generatedTable = open('%s/generated_table.c' % (resourcesDir), 'w')
@@ -862,6 +891,9 @@ def configWatch():
     resourceStr = ''
     resourceStr += makeFaces(generatedTable, generatedDefs)
     resourceStr += makeHands(generatedTable, generatedDefs)
+
+    if supportMoon:
+        resourceStr += makeMoon()
 
     print >> generatedDefs, "extern struct IndicatorTable date_windows[NUM_DATE_WINDOWS][NUM_FACES];"
     print >> generatedTable, "struct IndicatorTable date_windows[NUM_DATE_WINDOWS][NUM_FACES] = {"
@@ -881,25 +913,36 @@ def configWatch():
         watchface = 'false'
 
     langData = open('%s/lang_data.json' % (resourcesDir), 'r').read()
+    generatedMedia = resourceStr[:-1]
 
     print >> resource, resourceIn % {
         'uuId' : formatUuId(uuId),
         'watchName' : watchName,
         'watchface' : watchface,
         'langData' : langData,
-        'generatedMedia' : resourceStr[:-1],
+        'generatedMedia' : generatedMedia,
         }
 
     jsIn = open('%s/src/js/pebble-js-app.js.in' % (rootDir), 'r').read()
     js = open('%s/src/js/pebble-js-app.js' % (rootDir), 'w')
+
+    if 'battery' in defaults:
+        defaultBattery = 2
+    else:
+        defaultBattery = 1
+    if 'bluetooth' in defaults:
+        defaultBluetooth = 2
+    else:
+        defaultBluetooth = 1
 
     print >> js, jsIn % {
         'watchName' : watchName,
         'numFaces' : numFaces,
         'numDateWindows' : len(date_windows),
         'enableChronoDial' : int(makeChronograph),
-        'defaultBluetooth' : int(bool('bluetooth' in defaults)),
-        'defaultBattery' : int(bool('battery' in defaults)),
+        'supportMoon' : int(bool(supportMoon)),
+        'defaultBluetooth' : defaultBluetooth,
+        'defaultBattery' : defaultBattery,
         'enableSecondHand' : int(enableSecondHand and not suppressSecondHand),
         'enableHourBuzzer' : int(enableHourBuzzer),
         'enableSweepSeconds' : int(enableSecondHand and supportSweep),
@@ -940,6 +983,7 @@ def configWatch():
         'enableSweepSeconds' : int(enableSecondHand and supportSweep),
         'enableHourBuzzer' : int(enableHourBuzzer),
         'makeChronograph' : int(makeChronograph and enableChronoSecondHand),
+        'supportMoon' : int(bool(supportMoon)),
         'enableChronoMinuteHand' : int(enableChronoMinuteHand),
         'enableChronoSecondHand' : int(enableChronoSecondHand),
         'enableChronoTenthHand' : int(enableChronoTenthHand),
@@ -949,7 +993,7 @@ def configWatch():
 
 # Main.
 try:
-    opts, args = getopt.getopt(sys.argv[1:], 's:H:F:Sbciwxdh')
+    opts, args = getopt.getopt(sys.argv[1:], 's:H:F:Sbciwmxdh')
 except getopt.error, msg:
     usage(1, msg)
 
@@ -959,6 +1003,7 @@ faceStyle = None
 invertHands = False
 supportSweep = False
 compileDebugging = False
+supportMoon = True
 supportRle = True
 for opt, arg in opts:
     if opt == '-s':
@@ -986,6 +1031,8 @@ for opt, arg in opts:
         invertHands = True
     elif opt == '-w':
         supportSweep = True
+    elif opt == '-m':
+        supportMoon = False
     elif opt == '-x':
         supportRle = False
     elif opt == '-d':

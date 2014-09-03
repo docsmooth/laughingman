@@ -45,6 +45,10 @@ struct __attribute__((__packed__)) HandPlacement {
   unsigned char year_value;  // less 1900.
   bool ampm_value;
 
+#ifdef SUPPORT_MOON
+  unsigned char lunar_phase;
+#endif  // SUPPORT_MOON
+
   // Not really a hand placement, but this is used to keep track of
   // whether we have buzzed for the top of the hour or not.
   bool hour_buzzer;
@@ -63,13 +67,18 @@ struct __attribute__((__packed__)) HandCache {
   GPath *path[HAND_CACHE_MAX_GROUPS];
 };
 
+// The DrawModeTable is defined in write.c, and allows us to switch
+// draw modes according to whether the face is drawn black-on-white
+// (the default, draw_mode 0) or white-on-black (draw_mode 1).  In the
+// comments below the "fg color" is black in draw mode 0 and white in
+// draw mode 1.
 typedef struct {
-  GCompOp paint_black;
-  GCompOp paint_white;
-  GCompOp paint_assign;
-  GCompOp paint_fg;
-  GCompOp paint_mask;
-  GColor colors[3];
+  GCompOp paint_black;  // paint the white pixels in the fg color
+  GCompOp paint_white;  // paint the white pixels in the bg color
+  GCompOp paint_assign; // paint the black pixels in the fg color and the white pixels in the bg color
+  GCompOp paint_fg;     // paint the black pixels in the fg color
+  GCompOp paint_mask;   // paint the black pixels in the bg color
+  GColor colors[3];     //  { clear, fg color, bg color }
 } __attribute__((__packed__)) DrawModeTable;
 
 extern DrawModeTable draw_mode_table[2];
@@ -83,7 +92,6 @@ void started_click_config_provider(void *context);
 
 void trigger_memory_panic(int line_number);
 void reset_memory_panic();
-unsigned int get_time_ms(struct tm *time);
 void update_hands(struct tm *time);
 void hand_cache_init(struct HandCache *hand_cache);
 void hand_cache_destroy(struct HandCache *hand_cache);

@@ -7,8 +7,8 @@
 // These keys are used to communicate with Javascript and must match
 // the corresponding index numbers in appinfo.json.in.
 typedef enum {
-  CK_keep_battery_gauge = 0,
-  CK_keep_bluetooth_indicator = 1,
+  CK_battery_gauge = 0,
+  CK_bluetooth_indicator = 1,
   CK_second_hand = 2,
   CK_hour_buzzer = 3,
   CK_draw_mode = 4,
@@ -21,7 +21,16 @@ typedef enum {
   CK_date_window_c = 11,
   CK_date_window_d = 12,
   CK_bluetooth_buzzer = 13,
+  CK_lunar_background = 14,
+  CK_lunar_direction = 15,
 } ConfigKey;
+
+typedef enum {
+  IM_off = 0,
+  IM_when_needed = 1,
+  IM_always = 2,
+  IM_digital = 3,
+} IndicatorMode;
 
 typedef enum {
   CDM_off = 0,
@@ -42,11 +51,14 @@ typedef enum {
   DWM_weekday = 4,
   DWM_month = 5,
   DWM_ampm = 6,
+  
+  // Special case.
+  DWM_moon = 7,
 } DateWindowMode;
 
 typedef struct {
-  bool keep_battery_gauge;
-  bool keep_bluetooth_indicator;
+  IndicatorMode battery_gauge;
+  IndicatorMode bluetooth_indicator;
   bool second_hand;
   bool hour_buzzer;
   bool bluetooth_buzzer;
@@ -56,6 +68,8 @@ typedef struct {
   unsigned char display_lang;
   unsigned char face_index;
   DateWindowMode date_windows[NUM_DATE_WINDOWS];
+  bool lunar_background;   // true for always-black background.
+  bool lunar_direction;    // true for southern hemisphere (left-to-right).
 } __attribute__((__packed__)) ConfigOptions;
 
 extern ConfigOptions config;

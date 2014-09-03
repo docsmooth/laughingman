@@ -5,13 +5,13 @@
   "capabilities": [ "configurable" ],
   "companyName": "@docsmooth",
   "versionCode": 1,
-  "versionLabel": "2.6.5",
+  "versionLabel": "2.10.0",
   "watchapp": {
     "watchface": %(watchface)s
   },
   "appKeys": {
-    "keep_battery_gauge": 0,
-    "keep_bluetooth_indicator": 1,
+    "battery_gauge": 0,
+    "bluetooth_indicator": 1,
     "second_hand": 2,
     "hour_buzzer": 3,
     "draw_mode": 4,
@@ -23,7 +23,9 @@
     "date_window_b": 10,
     "date_window_c": 11,
     "date_window_d": 12,
-    "bluetooth_buzzer": 13
+    "bluetooth_buzzer": 13,
+    "lunar_background": 14,
+    "lunar_direction": 15
   },
   "resources": {
   "media": [
@@ -41,6 +43,11 @@
     {
       "name": "BATTERY_GAUGE_CHARGING",
       "file": "battery_gauge_charging.png",
+      "type": "png"
+    },
+    {
+      "name": "BATTERY_GAUGE_CHARGED",
+      "file": "battery_gauge_charged.png",
       "type": "png"
     },
     {

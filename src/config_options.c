@@ -20,6 +20,8 @@ void init_default_options() {
     0,
     0,
     { DEFAULT_DATE_WINDOWS },
+    false,
+    false,
   };
   
   config = default_options;
@@ -28,12 +30,14 @@ void init_default_options() {
 void sanitize_config() {
   // Ensures that the newly-loaded config parameters are within a
   // reasonable range for the program and won't cause crashes.
+  config.battery_gauge = config.battery_gauge % (IM_digital + 1);
+  config.bluetooth_indicator = config.bluetooth_indicator % (IM_always + 1);
   config.draw_mode = config.draw_mode & 1;
   config.chrono_dial = config.chrono_dial % (CDM_dual + 1);
   config.display_lang = config.display_lang % num_langs;
   config.face_index = config.face_index % NUM_FACES;
   for (int i = 0; i < NUM_DATE_WINDOWS; ++i) {
-    config.date_windows[i] = config.date_windows[i] % (DWM_ampm + 1);
+    config.date_windows[i] = config.date_windows[i] % (DWM_moon + 1);
   }
 }
 
@@ -41,7 +45,7 @@ void sanitize_config() {
 const char *show_config() {
 #define CONFIG_BUFFER_SIZE 100
   static char buffer[CONFIG_BUFFER_SIZE];
-  snprintf(buffer, CONFIG_BUFFER_SIZE, "bat: %d, bt: %d, sh: %d, hb: %d, bb: %d, dm: %d, cd: %d, sw: %d, dl: %d, fi: %d, dw: ", config.keep_battery_gauge, config.keep_bluetooth_indicator, config.second_hand, config.hour_buzzer, config.bluetooth_buzzer, config.draw_mode, config.chrono_dial, config.sweep_seconds, config.display_lang, config.face_index);
+  snprintf(buffer, CONFIG_BUFFER_SIZE, "bat: %d, bt: %d, sh: %d, hb: %d, bb: %d, dm: %d, cd: %d, sw: %d, dl: %d, fi: %d, lb: %d, ld: %s, dw: ", config.battery_gauge, config.bluetooth_indicator, config.second_hand, config.hour_buzzer, config.bluetooth_buzzer, config.draw_mode, config.chrono_dial, config.sweep_seconds, config.display_lang, config.face_index, config.lunar_background, config.lunar_direction);
 
   if (NUM_DATE_WINDOWS > 0) {
     char b2[12];
@@ -90,29 +94,29 @@ void receive_config_handler(DictionaryIterator *received, void *context) {
   app_log(APP_LOG_LEVEL_INFO, __FILE__, __LINE__, "receive_config_handler");
   ConfigOptions orig_config = config;
 
-  Tuple *keep_battery_gauge = dict_find(received, CK_keep_battery_gauge);
-  if (keep_battery_gauge != NULL) {
-    config.keep_battery_gauge = keep_battery_gauge->value->int32;
+  Tuple *battery_gauge = dict_find(received, CK_battery_gauge);
+  if (battery_gauge != NULL) {
+    config.battery_gauge = (IndicatorMode)battery_gauge->value->int32;
   }
 
-  Tuple *keep_bluetooth_indicator = dict_find(received, CK_keep_bluetooth_indicator);
-  if (keep_bluetooth_indicator != NULL) {
-    config.keep_bluetooth_indicator = keep_bluetooth_indicator->value->int32;
+  Tuple *bluetooth_indicator = dict_find(received, CK_bluetooth_indicator);
+  if (bluetooth_indicator != NULL) {
+    config.bluetooth_indicator = (IndicatorMode)bluetooth_indicator->value->int32;
   }
 
   Tuple *second_hand = dict_find(received, CK_second_hand);
   if (second_hand != NULL) {
-    config.second_hand = second_hand->value->int32;
+    config.second_hand = (second_hand->value->int32 != 0);
   }
 
   Tuple *hour_buzzer = dict_find(received, CK_hour_buzzer);
   if (hour_buzzer != NULL) {
-    config.hour_buzzer = hour_buzzer->value->int32;
+    config.hour_buzzer = (hour_buzzer->value->int32 != 0);
   }
 
   Tuple *bluetooth_buzzer = dict_find(received, CK_bluetooth_buzzer);
   if (bluetooth_buzzer != NULL) {
-    config.bluetooth_buzzer = bluetooth_buzzer->value->int32;
+    config.bluetooth_buzzer = (bluetooth_buzzer->value->int32 != 0);
   }
 
   Tuple *draw_mode = dict_find(received, CK_draw_mode);
@@ -122,7 +126,7 @@ void receive_config_handler(DictionaryIterator *received, void *context) {
 
   Tuple *chrono_dial = dict_find(received, CK_chrono_dial);
   if (chrono_dial != NULL) {
-    config.chrono_dial = chrono_dial->value->int32;
+    config.chrono_dial = (ChronoDialMode)chrono_dial->value->int32;
   }
 
   Tuple *sweep_seconds = dict_find(received, CK_sweep_seconds);
@@ -153,9 +157,19 @@ void receive_config_handler(DictionaryIterator *received, void *context) {
     }
   }
 
+  Tuple *lunar_background = dict_find(received, CK_lunar_background);
+  if (lunar_background != NULL) {
+    config.lunar_background = (lunar_background->value->int32 != 0);
+  }
+
+  Tuple *lunar_direction = dict_find(received, CK_lunar_direction);
+  if (lunar_direction != NULL) {
+    config.lunar_direction = (lunar_direction->value->int32 != 0);
+  }
+
   sanitize_config();
 
-  app_log(APP_LOG_LEVEL_INFO, __FILE__, __LINE__, show_config());
+  app_log(APP_LOG_LEVEL_INFO, __FILE__, __LINE__, "New config: %s", show_config());
   if (memcmp(&orig_config, &config, sizeof(config)) == 0) {
     app_log(APP_LOG_LEVEL_INFO, __FILE__, __LINE__, "Config is unchanged.");
   } else {
