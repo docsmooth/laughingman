@@ -237,8 +237,8 @@ faces = {
         'date_window_c' : (52, 109, 'b'), 
         'date_window_d' : (92, 109, 'b'), 
         'date_window_filename' : ('date_window.png', 'date_window_mask.png'),
-        'bluetooth' : (39, 47, 'b'),
-        'battery' : (89, 51, 'b'),
+        'bluetooth' : (37, 47, 'b'),
+        'battery' : (92, 51, 'b'),
         'defaults' : [ 'date:b' ],
         },
     'b' : {
@@ -287,7 +287,7 @@ faces = {
         'date_window_d' : (72, 146, 'bt'), 
         'date_window_filename' : ('date_window.png', 'date_window_mask.png'),
         'bluetooth' : [ (11, 12, 'w'), (11, 12, 'b'), ],
-        'battery' : [ (113, 16, 'w'), (113, 16, 'b'), ],
+        'battery' : [ (115, 16, 'w'), (115, 16, 'b'), ],
         'defaults' : [ 'date:c' ],
         },
     'f' : {
@@ -923,6 +923,8 @@ def configWatch():
         'generatedMedia' : generatedMedia,
         }
 
+    displayLangLookup = open('%s/displayLangLookup.txt' % (resourcesDir), 'r').read()
+
     jsIn = open('%s/src/js/pebble-js-app.js.in' % (rootDir), 'r').read()
     js = open('%s/src/js/pebble-js-app.js' % (rootDir), 'w')
 
@@ -947,6 +949,7 @@ def configWatch():
         'enableHourBuzzer' : int(enableHourBuzzer),
         'enableSweepSeconds' : int(enableSecondHand and supportSweep),
         'defaultDateWindows' : repr(defaultDateWindows),
+        'displayLangLookup' : displayLangLookup,
         }
 
     configIn = open('%s/generated_config.h.in' % (resourcesDir), 'r').read()

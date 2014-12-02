@@ -45,7 +45,7 @@ void sanitize_config() {
 const char *show_config() {
 #define CONFIG_BUFFER_SIZE 100
   static char buffer[CONFIG_BUFFER_SIZE];
-  snprintf(buffer, CONFIG_BUFFER_SIZE, "bat: %d, bt: %d, sh: %d, hb: %d, bb: %d, dm: %d, cd: %d, sw: %d, dl: %d, fi: %d, lb: %d, ld: %s, dw: ", config.battery_gauge, config.bluetooth_indicator, config.second_hand, config.hour_buzzer, config.bluetooth_buzzer, config.draw_mode, config.chrono_dial, config.sweep_seconds, config.display_lang, config.face_index, config.lunar_background, config.lunar_direction);
+  snprintf(buffer, CONFIG_BUFFER_SIZE, "bat: %d, bt: %d, sh: %d, hb: %d, bb: %d, dm: %d, cd: %d, sw: %d, dl: %d, fi: %d, lb: %d, ld: %d, dw: ", config.battery_gauge, config.bluetooth_indicator, config.second_hand, config.hour_buzzer, config.bluetooth_buzzer, config.draw_mode, config.chrono_dial, config.sweep_seconds, config.display_lang, config.face_index, config.lunar_background, config.lunar_direction);
 
   if (NUM_DATE_WINDOWS > 0) {
     char b2[12];
@@ -136,13 +136,7 @@ void receive_config_handler(DictionaryIterator *received, void *context) {
 
   Tuple *display_lang = dict_find(received, CK_display_lang);
   if (display_lang != NULL) {
-    // Look for the matching language name in our table of known languages.
-    for (int li = 0; li < num_langs; ++li) {
-      if (strcmp(display_lang->value->cstring, lang_table[li].locale_name) == 0) {
-	config.display_lang = li;
-	break;
-      }
-    }
+    config.display_lang = display_lang->value->int32;
   }
 
   Tuple *face_index = dict_find(received, CK_face_index);
