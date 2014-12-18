@@ -1007,7 +1007,8 @@ invertHands = False
 supportSweep = False
 compileDebugging = False
 supportMoon = True
-supportRle = True
+#supportRle = True
+supportRle = False
 for opt, arg in opts:
     if opt == '-s':
         watchStyle = arg
