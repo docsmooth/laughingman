@@ -1,8 +1,8 @@
 #include "wright.h"
 #include "wright_chrono.h"
 
-#include "../resources/generated_table.c"
-#include "../resources/lang_table.c"
+#include "../../resources/generated_table.c"
+#include "../../resources/lang_table.c"
 
 bool memory_panic_flag = false;
 int memory_panic_count = 0;
@@ -13,6 +13,18 @@ Window *window;
 BitmapWithData clock_face;
 int face_index = -1;
 Layer *clock_face_layer;
+
+#ifdef LAUGHINGMAN_FACE
+GBitmap *laughingman_hour_bitmap;
+GBitmap *laughingman_minute_bitmap;
+#if defined(PBL_COLOR)
+  #define LAUGHINGMAN_HOUR_RESOURCE RESOURCE_ID_LAUGHINGMAN_HOUR_COLOR
+  #define LAUGHINGMAN_MINUTE_RESOURCE RESOURCE_ID_LAUGHINGMAN_MINUTE_COLOR
+#else
+  #define LAUGHINGMAN_HOUR_RESOURCE RESOURCE_ID_LAUGHINGMAN_HOUR_BW
+  #define LAUGHINGMAN_MINUTE_RESOURCE RESOURCE_ID_LAUGHINGMAN_MINUTE_BW
+#endif
+#endif
 
 BitmapWithData date_window;
 BitmapWithData date_window_mask;
@@ -172,15 +184,25 @@ void compute_hands(struct tm *time, struct HandPlacement *placement) {
   ms *= 67;
 #endif  // FAST_TIME
 
-  {
-    // Avoid overflowing the integer arithmetic by pre-constraining
-    // the ms value to the appropriate range.
-    unsigned int use_ms = ms % (SECONDS_PER_HOUR * 12 * 1000);
-    placement->hour_hand_index = ((NUM_STEPS_HOUR * use_ms) / (SECONDS_PER_HOUR * 12 * 1000)) % NUM_STEPS_HOUR;
-  }
-  {
-    unsigned int use_ms = ms % (SECONDS_PER_HOUR * 1000);
-    placement->minute_hand_index = ((NUM_STEPS_MINUTE * use_ms) / (SECONDS_PER_HOUR * 1000)) % NUM_STEPS_MINUTE;
+  if (time != NULL) {
+    placement->hour_hand_index =
+        ((time->tm_hour % 12) * NUM_STEPS_HOUR + time->tm_min) / 12;
+    placement->minute_hand_index = time->tm_min;
+  } else {
+    {
+      // Avoid overflowing the integer arithmetic by pre-constraining
+      // the ms value to the appropriate range.
+      unsigned int use_ms = ms % (SECONDS_PER_HOUR * 12 * 1000);
+      placement->hour_hand_index =
+          ((NUM_STEPS_HOUR * use_ms) / (SECONDS_PER_HOUR * 12 * 1000)) %
+          NUM_STEPS_HOUR;
+    }
+    {
+      unsigned int use_ms = ms % (SECONDS_PER_HOUR * 1000);
+      placement->minute_hand_index =
+          ((NUM_STEPS_MINUTE * use_ms) / (SECONDS_PER_HOUR * 1000)) %
+          NUM_STEPS_MINUTE;
+    }
   }
   {
     unsigned int use_ms = ms % (60 * 1000);
@@ -260,11 +282,11 @@ uint8_t reverse_bits(uint8_t b) {
 // Horizontally flips the indicated GBitmap in-place.  Requires
 // that the width be a multiple of 8 pixels.
 void flip_bitmap_x(GBitmap *image, short *cx) {
-  int height = image->bounds.size.h;
-  int width = image->bounds.size.w;  // multiple of 8, by our convention.
+  int height = gbitmap_get_bounds(image).size.h;
+  int width = gbitmap_get_bounds(image).size.w;  // multiple of 8, by our convention.
   int width_bytes = width / 8;
-  int stride = image->row_size_bytes; // multiple of 4, by Pebble.
-  uint8_t *data = image->addr;
+  int stride = gbitmap_get_bytes_per_row(image); // multiple of 4, by Pebble.
+  uint8_t *data = gbitmap_get_data(image);
 
   for (int y = 0; y < height; ++y) {
     uint8_t *row = data + y * stride;
@@ -283,9 +305,9 @@ void flip_bitmap_x(GBitmap *image, short *cx) {
 
 // Vertically flips the indicated GBitmap in-place.
 void flip_bitmap_y(GBitmap *image, short *cy) {
-  int height = image->bounds.size.h;
-  int stride = image->row_size_bytes; // multiple of 4.
-  uint8_t *data = image->addr;
+  int height = gbitmap_get_bounds(image).size.h;
+  int stride = gbitmap_get_bytes_per_row(image); // multiple of 4.
+  uint8_t *data = gbitmap_get_data(image);
 
 #if 1
   /* This is the slightly slower flip, that requires less RAM on the
@@ -413,7 +435,7 @@ void draw_bitmap_hand(struct HandCache *hand_cache, struct HandDef *hand_def, in
     // We make sure the dimensions of the GRect to draw into
     // are equal to the size of the bitmap--otherwise the image
     // will automatically tile.
-    GRect destination = hand_cache->image.bitmap->bounds;
+    GRect destination = gbitmap_get_bounds(hand_cache->image.bitmap);
     
     // Place the hand's center point at place_x, place_y.
     destination.origin.x = hand_def->place_x - hand_cache->cx;
@@ -466,7 +488,7 @@ void draw_bitmap_hand(struct HandCache *hand_cache, struct HandDef *hand_def, in
       }
     }
     
-    GRect destination = hand_cache->image.bitmap->bounds;
+    GRect destination = gbitmap_get_bounds(hand_cache->image.bitmap);
     
     destination.origin.x = hand_def->place_x - hand_cache->cx;
     destination.origin.y = hand_def->place_y - hand_cache->cy;
@@ -492,6 +514,94 @@ void draw_hand(struct HandCache *hand_cache, struct HandDef *hand_def, int hand_
   }
 }
 
+#ifdef LAUGHINGMAN_FACE
+static GPoint laughingman_point_from_legacy(int x, int y) {
+  GRect bounds = layer_get_bounds(window_get_root_layer(window));
+  return GPoint(bounds.size.w / 2 + (x - 72) * bounds.size.w / 144,
+                bounds.size.h / 2 + (y - 84) * bounds.size.w / 144);
+}
+
+static GPoint laughingman_indicator_point(int x, int y, bool date_window) {
+  GRect bounds = layer_get_bounds(window_get_root_layer(window));
+  GPoint point = laughingman_point_from_legacy(x, y);
+
+  if (PBL_IF_ROUND_ELSE(true, false)) {
+    bool left = x < 72;
+    bool top = y < 84;
+
+    if (date_window) {
+      point.x = left ? bounds.size.w / 4 : bounds.size.w * 3 / 4;
+      point.y = bounds.size.h - bounds.size.w / 4;
+    } else {
+      point.x = left ? bounds.size.w / 4 : bounds.size.w * 3 / 4;
+      point.y = top ? bounds.size.w / 6 : bounds.size.h - bounds.size.w / 6;
+    }
+  }
+
+  return point;
+}
+
+static void draw_laughingman_hand(GContext *ctx, GBitmap **bitmap, int resource_id,
+                                  int hand_index, int hand_steps,
+                                  int rotation_offset) {
+  if (*bitmap == NULL) {
+    *bitmap = gbitmap_create_with_resource(resource_id);
+    if (*bitmap == NULL) {
+      trigger_memory_panic(__LINE__);
+      return;
+    }
+  }
+
+  GRect bounds = gbitmap_get_bounds(*bitmap);
+  GPoint source_center = GPoint(bounds.size.w / 2, bounds.size.h / 2);
+  GRect layer_bounds = layer_get_bounds(clock_face_layer);
+  GPoint destination_center = GPoint(layer_bounds.size.w / 2, layer_bounds.size.h / 2);
+  graphics_context_set_compositing_mode(ctx, PBL_IF_COLOR_ELSE(GCompOpSet, GCompOpAnd));
+  graphics_draw_rotated_bitmap(ctx, *bitmap, source_center,
+                               TRIG_MAX_ANGLE * hand_index / hand_steps + rotation_offset,
+                               destination_center);
+}
+
+static void draw_laughingman_rings(Layer *layer, GContext *ctx) {
+  GRect bounds = layer_get_bounds(layer);
+  int radius = bounds.size.w / 2;
+  GPoint center = GPoint(bounds.size.w / 2, bounds.size.h / 2);
+  GColor ring_color = PBL_IF_COLOR_ELSE(GColorMidnightGreen, GColorBlack);
+
+  graphics_context_set_fill_color(ctx, ring_color);
+  graphics_fill_circle(ctx, center, radius * 60 / 72);
+  graphics_context_set_fill_color(ctx, GColorWhite);
+  graphics_fill_circle(ctx, center, radius * 56 / 72);
+  graphics_context_set_fill_color(ctx, ring_color);
+  graphics_fill_circle(ctx, center, radius * 42 / 72);
+  graphics_context_set_fill_color(ctx, GColorWhite);
+  graphics_fill_circle(ctx, center, radius * 34 / 72);
+}
+
+static void draw_laughingman_second_hand(Layer *layer, GContext *ctx) {
+  if (!config.second_hand) {
+    return;
+  }
+
+  GRect bounds = layer_get_bounds(layer);
+  int scale = bounds.size.w;
+  int angle = TRIG_MAX_ANGLE * current_placement.second_hand_index /
+              NUM_STEPS_SECOND;
+  int radius = 51 * scale / 144;
+  GPoint center = GPoint(bounds.size.w / 2, bounds.size.h / 2);
+  GPoint button = GPoint(center.x + sin_lookup(angle) * radius / TRIG_MAX_RATIO,
+                         center.y - cos_lookup(angle) * radius / TRIG_MAX_RATIO);
+  int button_radius = 3 * scale / 144;
+  if (button_radius < 2) {
+    button_radius = 2;
+  }
+
+  graphics_context_set_fill_color(
+      ctx, PBL_IF_COLOR_ELSE(GColorMidnightGreen, GColorBlack));
+  graphics_fill_circle(ctx, button, button_radius);
+}
+#endif
+
 void clock_face_layer_update_callback(Layer *me, GContext *ctx) {
   //  app_log(APP_LOG_LEVEL_INFO, __FILE__, __LINE__, "clock_face_layer");
   if (memory_panic_count > 5) {
@@ -516,26 +626,44 @@ void clock_face_layer_update_callback(Layer *me, GContext *ctx) {
   destination.origin.y = 0;
   graphics_context_set_compositing_mode(ctx, draw_mode_table[config.draw_mode].paint_assign);
   graphics_draw_bitmap_in_rect(ctx, clock_face.bitmap, destination);
+#ifdef LAUGHINGMAN_FACE
+  draw_laughingman_rings(me, ctx);
+#endif
 }
   
 void hour_layer_update_callback(Layer *me, GContext *ctx) {
   //  app_log(APP_LOG_LEVEL_INFO, __FILE__, __LINE__, "hour_layer");
 
+#ifdef LAUGHINGMAN_FACE
+  draw_laughingman_hand(ctx, &laughingman_hour_bitmap, LAUGHINGMAN_HOUR_RESOURCE,
+                        current_placement.hour_hand_index, NUM_STEPS_HOUR, 0);
+#else
   draw_hand(&hour_cache, &hour_hand_def, current_placement.hour_hand_index, ctx);
+#endif
 }
 
 void minute_layer_update_callback(Layer *me, GContext *ctx) {
   //  app_log(APP_LOG_LEVEL_INFO, __FILE__, __LINE__, "minute_layer");
 
+#ifdef LAUGHINGMAN_FACE
+  draw_laughingman_hand(ctx, &laughingman_minute_bitmap, LAUGHINGMAN_MINUTE_RESOURCE,
+                        current_placement.minute_hand_index, NUM_STEPS_MINUTE,
+                        TRIG_MAX_ANGLE / 4);
+#else
   draw_hand(&minute_cache, &minute_hand_def, current_placement.minute_hand_index, ctx);
+#endif
 }
 
 void second_layer_update_callback(Layer *me, GContext *ctx) {
   //  app_log(APP_LOG_LEVEL_INFO, __FILE__, __LINE__, "second_layer");
 
+#ifdef LAUGHINGMAN_FACE
+  draw_laughingman_second_hand(me, ctx);
+#else
   if (config.second_hand) {
     draw_hand(&second_cache, &second_hand_def, current_placement.second_hand_index, ctx);
   }
+#endif
 }
 
 // Draws the frame and optionally fills the background of the current date window.
@@ -919,16 +1047,33 @@ void apply_config() {
     // Also move any layers to their new position on this face.
     for (int i = 0; i < NUM_DATE_WINDOWS; ++i) {
       const struct IndicatorTable *window = &date_windows[i][config.face_index];
-      layer_set_frame((Layer *)date_window_layers[i], GRect(window->x - 19, window->y - 8, 39, 19));
+#ifdef LAUGHINGMAN_FACE
+      GPoint point = laughingman_indicator_point(window->x, window->y, true);
+      layer_set_frame((Layer *)date_window_layers[i],
+                      GRect(point.x - 19, point.y - 8, 39, 19));
+#else
+      layer_set_frame((Layer *)date_window_layers[i],
+                      GRect(window->x - 19, window->y - 8, 39, 19));
+#endif
     }
 
     {
       const struct IndicatorTable *window = &battery_table[config.face_index];
+#ifdef LAUGHINGMAN_FACE
+      GPoint point = laughingman_indicator_point(window->x, window->y, false);
+      move_battery_gauge(point.x, point.y, window->invert, window->opaque);
+#else
       move_battery_gauge(window->x, window->y, window->invert, window->opaque);
+#endif
     }
     {
       const struct IndicatorTable *window = &bluetooth_table[config.face_index];
+#ifdef LAUGHINGMAN_FACE
+      GPoint point = laughingman_indicator_point(window->x, window->y, false);
+      move_bluetooth_indicator(point.x, point.y, window->invert, window->opaque);
+#else
       move_bluetooth_indicator(window->x, window->y, window->invert, window->opaque);
+#endif
     }
   }
 
@@ -973,7 +1118,6 @@ void create_objects() {
   window_handlers.unload = window_unload_handler;
   window_set_window_handlers(window, window_handlers);
 
-  window_set_fullscreen(window, true);
   window_stack_push(window, false);
 
   hand_cache_init(&hour_cache);
@@ -990,16 +1134,33 @@ void create_objects() {
 
   {
     const struct IndicatorTable *window = &battery_table[config.face_index];
+#ifdef LAUGHINGMAN_FACE
+    GPoint point = laughingman_indicator_point(window->x, window->y, false);
+    init_battery_gauge(window_layer, point.x, point.y, window->invert, window->opaque);
+#else
     init_battery_gauge(window_layer, window->x, window->y, window->invert, window->opaque);
+#endif
   }
   {
     const struct IndicatorTable *window = &bluetooth_table[config.face_index];
+#ifdef LAUGHINGMAN_FACE
+    GPoint point = laughingman_indicator_point(window->x, window->y, false);
+    init_bluetooth_indicator(window_layer, point.x, point.y, window->invert, window->opaque);
+#else
     init_bluetooth_indicator(window_layer, window->x, window->y, window->invert, window->opaque);
+#endif
   }
 
   for (int i = 0; i < NUM_DATE_WINDOWS; ++i) {
     const struct IndicatorTable *window = &date_windows[i][config.face_index];
-    Layer *layer = layer_create_with_data(GRect(window->x - 19, window->y - 8, 39, 19), sizeof(DateWindowData));
+#ifdef LAUGHINGMAN_FACE
+    GPoint point = laughingman_indicator_point(window->x, window->y, true);
+    Layer *layer = layer_create_with_data(GRect(point.x - 19, point.y - 8, 39, 19),
+                                          sizeof(DateWindowData));
+#else
+    Layer *layer = layer_create_with_data(GRect(window->x - 19, window->y - 8, 39, 19),
+                                          sizeof(DateWindowData));
+#endif
     assert(layer != NULL);
     date_window_layers[i] = layer;
     DateWindowData *data = (DateWindowData *)layer_get_data(layer);
@@ -1077,6 +1238,17 @@ void destroy_objects() {
   clock_face_layer = NULL;
   bwd_destroy(&clock_face);
   face_index = -1;
+
+#ifdef LAUGHINGMAN_FACE
+  if (laughingman_hour_bitmap != NULL) {
+    gbitmap_destroy(laughingman_hour_bitmap);
+    laughingman_hour_bitmap = NULL;
+  }
+  if (laughingman_minute_bitmap != NULL) {
+    gbitmap_destroy(laughingman_minute_bitmap);
+    laughingman_minute_bitmap = NULL;
+  }
+#endif
 
 #ifdef MAKE_CHRONOGRAPH
   destroy_chrono_objects();

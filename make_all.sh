@@ -1,19 +1,25 @@
-python config_watch.py -sa -S -w || exit
-pebble build || exit
-mv build/rosewright.pbw build/rosewright_a.pbw
+#! /bin/bash
+# Builds every watch style.  Requires Python 3 with Pillow (PIL);
+# set PYTHON to a specific interpreter if python3 does not have it.
+PYTHON=${PYTHON:-python3}
+NAME=laughingman
 
-python config_watch.py -sb -S -w || exit
+$PYTHON config_watch.py -sa -S -w || exit
 pebble build || exit
-mv build/rosewright.pbw build/rosewright_b.pbw
+mv build/$NAME.pbw build/rosewright_a.pbw
 
-python config_watch.py -sc -c -w -x || exit
+$PYTHON config_watch.py -sb -S -w || exit
 pebble build || exit
-mv build/rosewright.pbw build/rosewright_c2.pbw
+mv build/$NAME.pbw build/rosewright_b.pbw
 
-python config_watch.py -sd -S || exit
+$PYTHON config_watch.py -sc -c -w -x || exit
 pebble build || exit
-mv build/rosewright.pbw build/rosewright_d.pbw
+mv build/$NAME.pbw build/rosewright_c2.pbw
 
-python config_watch.py -se -S || exit
+$PYTHON config_watch.py -sd -S || exit
 pebble build || exit
-mv build/rosewright.pbw build/rosewright_e.pbw
+mv build/$NAME.pbw build/rosewright_d.pbw
+
+$PYTHON config_watch.py -se -S || exit
+pebble build || exit
+mv build/$NAME.pbw build/rosewright_e.pbw

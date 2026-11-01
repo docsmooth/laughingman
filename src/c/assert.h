@@ -2,7 +2,7 @@
 #define __assert_h
 
 #include <pebble.h>
-#include "../resources/generated_config.h"
+#include "../../resources/generated_config.h"
 
 #ifndef NDEBUG
   // Our own poor-man's assert() function, since Pebble doesn't provide one.

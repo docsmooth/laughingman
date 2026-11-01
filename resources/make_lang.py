@@ -25,7 +25,7 @@ fontNames = {
     'latin' : ('ArchivoNarrow-Bold.ttf', 16),
     'extended' : ('DejaVuSansCondensed-Bold.ttf', 14),
     'rtl' : ('DejaVuSansCondensed-Bold.ttf', 14),
-    'zh' : ('wqy-microhei.ttc', 16),
+    'zh' : ('wqy-microhei.ttf', 16),  # first face extracted from wqy-microhei.ttc (the SDK does not accept .ttc)
     'ja' : ('TakaoPGothic.ttf', 16),
     'ko' : ('UnDotum.ttf', 16),
     'th' : ('Waree.ttf', 16),

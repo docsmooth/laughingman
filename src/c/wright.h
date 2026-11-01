@@ -5,8 +5,8 @@
 
 #include "hand_table.h"
 #include "lang_table.h"
-#include "../resources/generated_config.h"
-#include "../resources/generated_defs.h"
+#include "../../resources/generated_config.h"
+#include "../../resources/generated_defs.h"
 #include "bluetooth_indicator.h"
 #include "battery_gauge.h"
 #include "config_options.h"
@@ -19,8 +19,6 @@
   #define app_log(...)
 #endif  // NDBEUG
 
-#define SECONDS_PER_DAY 86400
-#define SECONDS_PER_HOUR 3600
 #define MS_PER_DAY (SECONDS_PER_DAY * 1000)
 
 #define SCREEN_WIDTH 144
@@ -58,7 +56,7 @@ struct __attribute__((__packed__)) HandPlacement {
 // hand, so we don't need to do as much work if we're redrawing a hand
 // in the same position as last time.
 #define HAND_CACHE_MAX_GROUPS 2
-struct __attribute__((__packed__)) HandCache {
+struct HandCache {
   unsigned char bitmap_hand_index;
   BitmapWithData image;
   BitmapWithData mask;

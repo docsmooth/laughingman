@@ -33,7 +33,7 @@ struct __attribute__((__packed__)) BitmapHandTableRow {
 
 // A vector definition is an array of groups, where each group is a
 // contiguous path.
-struct __attribute__((__packed__)) VectorHandGroup {
+struct VectorHandGroup {
   // outline or fill are 0, 1, or 2: GColorClear, GColorWhite, GColorBlack.
   unsigned char outline;
   unsigned char fill;

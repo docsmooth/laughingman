@@ -2,28 +2,26 @@
 #define CONFIG_OPTIONS_H
 
 #include <pebble.h>
-#include "../resources/generated_config.h"
+#include "../../resources/generated_config.h"
 
-// These keys are used to communicate with Javascript and must match
-// the corresponding index numbers in appinfo.json.in.
-typedef enum {
-  CK_battery_gauge = 0,
-  CK_bluetooth_indicator = 1,
-  CK_second_hand = 2,
-  CK_hour_buzzer = 3,
-  CK_draw_mode = 4,
-  CK_chrono_dial = 5,
-  CK_sweep_seconds = 6,
-  CK_display_lang = 7,
-  CK_face_index = 8,
-  CK_date_window_a = 9,
-  CK_date_window_b = 10,
-  CK_date_window_c = 11,
-  CK_date_window_d = 12,
-  CK_bluetooth_buzzer = 13,
-  CK_lunar_background = 14,
-  CK_lunar_direction = 15,
-} ConfigKey;
+// These keys are used to communicate with Javascript.  They are
+// assigned by the SDK from the messageKeys list in package.json.in.
+#define CK_battery_gauge MESSAGE_KEY_battery_gauge
+#define CK_bluetooth_indicator MESSAGE_KEY_bluetooth_indicator
+#define CK_second_hand MESSAGE_KEY_second_hand
+#define CK_hour_buzzer MESSAGE_KEY_hour_buzzer
+#define CK_draw_mode MESSAGE_KEY_draw_mode
+#define CK_chrono_dial MESSAGE_KEY_chrono_dial
+#define CK_sweep_seconds MESSAGE_KEY_sweep_seconds
+#define CK_display_lang MESSAGE_KEY_display_lang
+#define CK_face_index MESSAGE_KEY_face_index
+#define CK_date_window_a MESSAGE_KEY_date_window_a
+#define CK_date_window_b MESSAGE_KEY_date_window_b
+#define CK_date_window_c MESSAGE_KEY_date_window_c
+#define CK_date_window_d MESSAGE_KEY_date_window_d
+#define CK_bluetooth_buzzer MESSAGE_KEY_bluetooth_buzzer
+#define CK_lunar_background MESSAGE_KEY_lunar_background
+#define CK_lunar_direction MESSAGE_KEY_lunar_direction
 
 typedef enum {
   IM_off = 0,

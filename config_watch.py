@@ -1,8 +1,9 @@
-#! /usr/bin/env python
+#! /usr/bin/env python3
 
 import PIL.Image
 import PIL.ImageChops
 import sys
+import json
 import os
 import getopt
 from resources.make_rle import make_rle, make_rle_trans, make_rle_image
@@ -60,27 +61,21 @@ Options:
 """
 
 def usage(code, msg = ''):
-    watchStyles = watches.keys()
-    watchStyles.sort()
-    watchStyles = ' '.join(watchStyles)
-    handStyles = hands.keys()
-    handStyles.sort()
-    handStyles = ' '.join(handStyles)
-    faceStyles = faces.keys()
-    faceStyles.sort()
-    faceStyles = ' '.join(faceStyles)
-    print >> sys.stderr, help % {
+    watchStyles = ' '.join(sorted(watches.keys()))
+    handStyles = ' '.join(sorted(hands.keys()))
+    faceStyles = ' '.join(sorted(faces.keys()))
+    print(help % {
         'watchStyles' : watchStyles,
         'handStyles' : handStyles,
         'faceStyles' : faceStyles,
-        }
-    print >> sys.stderr, msg
+        }, file=sys.stderr)
+    print(msg, file=sys.stderr)
     sys.exit(code)
 
 
 # The default center for placing hands on the watch face, if not
 # otherwise specified in the centers tables below.
-centerX, centerY = 144 / 2, 168 / 2
+centerX, centerY = 144 // 2, 168 // 2
 
 # Table of watch styles.  A watch style is a combination of a hand
 # style and face style, and a unique identifier.  For each style,
@@ -189,10 +184,10 @@ hands = {
             [('b', [(0, -3), (0, -63)]),
              ]),
            ],
-    'f' : [('hour', ('f_hour_hand.png', 't', True, (18, 84), 1.0), None),
-           ('minute', ('f_minute_hand.png', 'b', True, (84, 84), 1.0), None),
+    'f' : [('hour', None, None),
+           ('minute', None, None),
            ('second', None, 
-            [('bb', [(-3, -54), (-3, -48), (3, -48), (3, -54)])
+            [('ww', [(-3, -54), (-3, -48), (3, -48), (3, -54)])
              ]),
            ],
     }
@@ -430,9 +425,9 @@ def makeFaces(generatedTable, generatedDefs):
     if chronoFilenames:
         targetChronoTenths, targetChronoHours = chronoFilenames
 
-    print >> generatedTable, "unsigned int clock_face_table[NUM_FACES] = {"
+    print("unsigned int clock_face_table[NUM_FACES] = {", file=generatedTable)
     for i in range(len(faceFilenames)):
-        print >> generatedTable, "  RESOURCE_ID_CLOCK_FACE_%s," % (i)
+        print("  RESOURCE_ID_CLOCK_FACE_%s," % (i), file=generatedTable)
         
         rleFilename, ptype = make_rle('clock_faces/' + faceFilenames[i], useRle = supportRle)
         resourceStr += clockFaceEntry % {
@@ -440,7 +435,7 @@ def makeFaces(generatedTable, generatedDefs):
             'rleFilename' : rleFilename,
             'ptype' : ptype,
             }
-    print >> generatedTable, "};\n"
+    print("};\n", file=generatedTable)
 
     if date_windows and date_window_filename:
         window, mask = date_window_filename
@@ -482,19 +477,19 @@ def makeVectorHands(generatedTable, generatedDefs, hand, groupList):
         '' : '0',
         }
 
-    print >> generatedTable, "struct VectorHand %s_hand_vector_table = {" % (hand)
+    print("struct VectorHand %s_hand_vector_table = {" % (hand), file=generatedTable)
 
-    print >> generatedTable, "  %s, (struct VectorHandGroup[]){" % (len(groupList))
+    print("  %s, (struct VectorHandGroup[]){" % (len(groupList)), file=generatedTable)
     for fillType, points in groupList:
         stroke = colorMap[fillType[0]]
         fill = colorMap[fillType[1:2]]
-        print >> generatedTable, "  { %s, %s, { %s, (GPoint[]){" % (stroke, fill, len(points))
+        print("  { %s, %s, { %s, (GPoint[]){" % (stroke, fill, len(points)), file=generatedTable)
         for px, py in points:
-            print >> generatedTable, "    { %s, %s }," % (px, py)
-        print >> generatedTable, "  } } },"
+            print("    { %s, %s }," % (px, py), file=generatedTable)
+        print("  } } },", file=generatedTable)
     
-    print >> generatedTable, "  }"
-    print >> generatedTable, "};\n"
+    print("  }", file=generatedTable)
+    print("};\n", file=generatedTable)
 
     return resourceStr
 
@@ -566,7 +561,7 @@ def makeBitmapHands(generatedTable, generatedDefs, useRle, hand, sourceFilename,
     # Center the source image on its pivot, and pad it with black.
     border = (pivot[0], pivot[1], source.size[0] - pivot[0], source.size[1] - pivot[1])
     size = (max(border[0], border[2]) * 2, max(border[1], border[3]) * 2)
-    center = (size[0] / 2, size[1] / 2)
+    center = (size[0] // 2, size[1] // 2)
     large = PIL.Image.new('L', size, 0)
     large.paste(source, (center[0] - pivot[0], center[1] - pivot[1]))
 
@@ -605,7 +600,7 @@ def makeBitmapHands(generatedTable, generatedDefs, useRle, hand, sourceFilename,
                 if angle > 90 and angle < 270:
                     # If we're in the bottom half of the circle, flip
                     # over from the top.
-                    i = (numStepsHand / 2 - i) % numStepsHand
+                    i = (numStepsHand // 2 - i) % numStepsHand
                     flip_y = True
                     angle = i * 360.0 / numStepsHand
         else:
@@ -615,7 +610,7 @@ def makeBitmapHands(generatedTable, generatedDefs, useRle, hand, sourceFilename,
             # 180-degree rotation), and this means we only need to
             # generate the right half, and rotate into the left.
             if angle >= 180:
-                i -= (numStepsHand / 2)
+                i -= (numStepsHand // 2)
                 flip_x = True
                 flip_y = True
                 angle = i * 360.0 / numStepsHand
@@ -638,16 +633,16 @@ def makeBitmapHands(generatedTable, generatedDefs, useRle, hand, sourceFilename,
 
             p = large.rotate(-angle, PIL.Image.BICUBIC, True)
             scaledSize = (int(p.size[0] * scale + 0.5), int(p.size[1] * scale + 0.5))
-            p = p.resize(scaledSize, PIL.Image.ANTIALIAS)
+            p = p.resize(scaledSize, PIL.Image.LANCZOS)
             if not dither:
                 p = p.point(thresholdMap)
             p = p.convert('1')
 
-            cx, cy = p.size[0] / 2, p.size[1] / 2
+            cx, cy = p.size[0] // 2, p.size[1] // 2
             cropbox = p.getbbox()
             if useTransparency:
                 pm = largeMask.rotate(-angle, PIL.Image.BICUBIC, True)
-                pm = pm.resize(scaledSize, PIL.Image.ANTIALIAS)
+                pm = pm.resize(scaledSize, PIL.Image.LANCZOS)
                 pm = pm.point(thresholdMap)
                 pm = pm.convert('1')
                 # In the useTransparency case, it's important to take
@@ -666,7 +661,7 @@ def makeBitmapHands(generatedTable, generatedDefs, useRle, hand, sourceFilename,
             # horizontally.  This doesn't consume any extra memory,
             # however, since the bits are there whether we use them or
             # not.
-            w = 8 * ((p.size[0] + 7) / 8)
+            w = 8 * ((p.size[0] + 7) // 8)
             if w != p.size[0]:
                 p1 = PIL.Image.new('1', (w, p.size[1]), 0)
                 p1.paste(p, (0, 0))
@@ -686,7 +681,7 @@ def makeBitmapHands(generatedTable, generatedDefs, useRle, hand, sourceFilename,
                     }
             else:
                 targetFilename = 'flat_%s_%s_%s.png' % (handStyle, hand, i)
-                print targetFilename
+                print(targetFilename)
                 p.save('%s/clock_hands/%s' % (resourcesDir, targetFilename))
                 resourceStr += resourceEntry % {
                     'defName' : symbolName,
@@ -705,7 +700,7 @@ def makeBitmapHands(generatedTable, generatedDefs, useRle, hand, sourceFilename,
                         }
                 else:
                     targetMaskFilename = 'flat_%s_%s_%s_mask.png' % (handStyle, hand, i)
-                    print targetMaskFilename
+                    print(targetMaskFilename)
                     pm.save('%s/clock_hands/%s' % (resourcesDir, targetMaskFilename))
                     maskResourceStr += resourceEntry % {
                         'defName' : symbolMaskName,
@@ -728,16 +723,16 @@ def makeBitmapHands(generatedTable, generatedDefs, useRle, hand, sourceFilename,
             }
         handTableLines.append(line)
 
-    print >> generatedTable, "struct BitmapHandCenterRow %s_hand_bitmap_lookup[] = {" % (hand)
+    print("struct BitmapHandCenterRow %s_hand_bitmap_lookup[] = {" % (hand), file=generatedTable)
     for i in range(maxLookupIndex + 1):
         line = handLookupLines.get(i, "  {},");
-        print >> generatedTable, line
-    print >> generatedTable, "};\n"
+        print(line, file=generatedTable)
+    print("};\n", file=generatedTable)
 
-    print >> generatedTable, "struct BitmapHandTableRow %s_hand_bitmap_table[NUM_STEPS_%s] = {" % (hand, hand.upper())
+    print("struct BitmapHandTableRow %s_hand_bitmap_table[NUM_STEPS_%s] = {" % (hand, hand.upper()), file=generatedTable)
     for line in handTableLines:
-        print >> generatedTable, line
-    print >> generatedTable, "};\n"
+        print(line, file=generatedTable)
+    print("};\n", file=generatedTable)
 
     return resourceStr + maskResourceStr
 
@@ -746,6 +741,41 @@ def makeHands(generatedTable, generatedDefs):
     hand style.  Returns resourceStr. """
     
     resourceStr = ''
+
+    if handStyle == 'f':
+        resourceStr += """
+    {
+      "name": "LAUGHINGMAN_HOUR_BW",
+      "file": "clock_hands/f_hour_hand_bw.png",
+      "type": "bitmap",
+      "memoryFormat": "1Bit",
+      "storageFormat": "pbi",
+      "targetPlatforms": ["aplite", "diorite", "flint"]
+    },
+    {
+      "name": "LAUGHINGMAN_HOUR_COLOR",
+      "file": "clock_hands/f_hour_hand_color.png",
+      "type": "bitmap",
+      "memoryFormat": "8Bit",
+      "storageFormat": "pbi",
+      "targetPlatforms": ["basalt", "chalk", "emery", "gabbro"]
+    },
+    {
+      "name": "LAUGHINGMAN_MINUTE_BW",
+      "file": "clock_hands/f_minute_hand_bw.png",
+      "type": "bitmap",
+      "memoryFormat": "1Bit",
+      "storageFormat": "pbi",
+      "targetPlatforms": ["aplite", "diorite", "flint"]
+    },
+    {
+      "name": "LAUGHINGMAN_MINUTE_COLOR",
+      "file": "clock_hands/f_minute_hand_color.png",
+      "type": "bitmap",
+      "memoryFormat": "8Bit",
+      "storageFormat": "pbi",
+      "targetPlatforms": ["basalt", "chalk", "emery", "gabbro"]
+    },"""
 
     handDefEntry = """struct HandDef %(hand)s_hand_def = {
     NUM_STEPS_%(handUpper)s,
@@ -811,8 +841,8 @@ def makeHands(generatedTable, generatedDefs):
             'bitmapTable' : bitmapTable,
             'vectorTable' : vectorTable,
         }
-        print >> generatedTable, handDef
-        print >> generatedDefs, 'extern struct HandDef %s_hand_def;' % (hand)
+        print(handDef, file=generatedTable)
+        print('extern struct HandDef %s_hand_def;' % (hand), file=generatedDefs)
 
     return resourceStr
 
@@ -842,20 +872,20 @@ def makeIndicatorTable(generatedTable, generatedDefs, name, indicator, anonymous
 
     if anonymous:
         # Anonymous structure within a table
-        print >> generatedTable, "  { // %s" % (name)
+        print("  { // %s" % (name), file=generatedTable)
     else:
         # Standalone named structure
-        print >> generatedDefs, "extern struct IndicatorTable %s[NUM_FACES];" % (name)
-        print >> generatedTable, "struct IndicatorTable %s[NUM_FACES] = {" % (name)
+        print("extern struct IndicatorTable %s[NUM_FACES];" % (name), file=generatedDefs)
+        print("struct IndicatorTable %s[NUM_FACES] = {" % (name), file=generatedTable)
     for x, y, c in indicator:
-        print >> generatedTable, "   { %s, %s, %s, %s }," % (
-            x, y, int(c[0] == 'w'), int(c[-1] == 't'))
+        print("   { %s, %s, %s, %s }," % (
+            x, y, int(c[0] == 'w'), int(c[-1] == 't')), file=generatedTable)
 
     if anonymous:
         # Anonymous structure within a table
-        print >> generatedTable, "  },";
+        print("  },", file=generatedTable)
     else:
-        print >> generatedTable, "};\n";
+        print("};\n", file=generatedTable)
 
 def makeMoon():
     """ Returns the resource strings needed to include the moon phase icons. """
@@ -895,18 +925,20 @@ def configWatch():
     if supportMoon:
         resourceStr += makeMoon()
 
-    print >> generatedDefs, "extern struct IndicatorTable date_windows[NUM_DATE_WINDOWS][NUM_FACES];"
-    print >> generatedTable, "struct IndicatorTable date_windows[NUM_DATE_WINDOWS][NUM_FACES] = {"
+    print("extern struct IndicatorTable date_windows[NUM_DATE_WINDOWS][NUM_FACES];", file=generatedDefs)
+    print("struct IndicatorTable date_windows[NUM_DATE_WINDOWS][NUM_FACES] = {", file=generatedTable)
     for i in range(len(date_windows)):
         ch = chr(97 + i)
         makeIndicatorTable(generatedTable, generatedDefs, ch, date_windows[i], anonymous = True)
-    print >> generatedTable, "};\n"
+    print("};\n", file=generatedTable)
         
     makeIndicatorTable(generatedTable, generatedDefs, 'battery_table', battery)
     makeIndicatorTable(generatedTable, generatedDefs, 'bluetooth_table', bluetooth)
+    generatedTable.close()
+    generatedDefs.close()
 
-    resourceIn = open('%s/appinfo.json.in' % (rootDir), 'r').read()
-    resource = open('%s/appinfo.json' % (rootDir), 'w')
+    resourceIn = open('%s/package.json.in' % (rootDir), 'r').read()
+    resource = open('%s/package.json' % (rootDir), 'w')
 
     watchface = 'true'
     if makeChronograph and enableChronoSecondHand:
@@ -915,7 +947,7 @@ def configWatch():
     langData = open('%s/lang_data.json' % (resourcesDir), 'r').read()
     generatedMedia = resourceStr[:-1]
 
-    print >> resource, resourceIn % {
+    packageText = resourceIn % {
         'uuId' : formatUuId(uuId),
         'watchName' : watchName,
         'watchface' : watchface,
@@ -923,10 +955,22 @@ def configWatch():
         'generatedMedia' : generatedMedia,
         }
 
+    # The drawing code assumes plain 1-bit bitmaps (the SDK would
+    # otherwise pick a palettized format, which breaks the GCompOp
+    # transparency tricks and the bitmap flipping).
+    packageData = json.loads(packageText)
+    for entry in packageData['pebble']['resources']['media']:
+        if entry['type'] == 'png':
+            entry['type'] = 'bitmap'
+            entry['memoryFormat'] = '1Bit'
+            entry['storageFormat'] = 'pbi'
+    print(json.dumps(packageData, indent=2), file=resource)
+    resource.close()
+
     displayLangLookup = open('%s/displayLangLookup.txt' % (resourcesDir), 'r').read()
 
-    jsIn = open('%s/src/js/pebble-js-app.js.in' % (rootDir), 'r').read()
-    js = open('%s/src/js/pebble-js-app.js' % (rootDir), 'w')
+    jsIn = open('%s/src/pkjs/index.js.in' % (rootDir), 'r').read()
+    js = open('%s/src/pkjs/index.js' % (rootDir), 'w')
 
     if 'battery' in defaults:
         defaultBattery = 2
@@ -937,7 +981,7 @@ def configWatch():
     else:
         defaultBluetooth = 1
 
-    print >> js, jsIn % {
+    print(jsIn % {
         'watchName' : watchName,
         'numFaces' : numFaces,
         'numDateWindows' : len(date_windows),
@@ -950,7 +994,8 @@ def configWatch():
         'enableSweepSeconds' : int(enableSecondHand and supportSweep),
         'defaultDateWindows' : repr(defaultDateWindows),
         'displayLangLookup' : displayLangLookup,
-        }
+        }, file=js)
+    js.close()
 
     configIn = open('%s/generated_config.h.in' % (resourcesDir), 'r').read()
     config = open('%s/generated_config.h' % (resourcesDir), 'w')
@@ -962,10 +1007,10 @@ def configWatch():
         if hand in implicitStackingOrder:
             implicitStackingOrder.remove(hand)
             explicitStackingOrder.append(hand)
-    stackingOrder = map(lambda hand: 'STACKING_ORDER_%s' % (hand.upper()), explicitStackingOrder + implicitStackingOrder)
+    stackingOrder = ['STACKING_ORDER_%s' % (hand.upper()) for hand in explicitStackingOrder + implicitStackingOrder]
     stackingOrder.append('STACKING_ORDER_DONE')
     
-    print >> config, configIn % {
+    print(configIn % {
         'persistKey' : 0x5151 + uuId[-1],
         'supportRle' : int(bool(supportRle)),
         'numFaces' : numFaces,
@@ -987,17 +1032,19 @@ def configWatch():
         'enableHourBuzzer' : int(enableHourBuzzer),
         'makeChronograph' : int(makeChronograph and enableChronoSecondHand),
         'supportMoon' : int(bool(supportMoon)),
+        'laughingManFace' : int(faceStyle == 'f'),
         'enableChronoMinuteHand' : int(enableChronoMinuteHand),
         'enableChronoSecondHand' : int(enableChronoSecondHand),
         'enableChronoTenthHand' : int(enableChronoTenthHand),
         'stackingOrder' : ', '.join(stackingOrder),
-        }
+        }, file=config)
+    config.close()
 
 
 # Main.
 try:
     opts, args = getopt.getopt(sys.argv[1:], 's:H:F:Sbciwmxdh')
-except getopt.error, msg:
+except getopt.error as msg:
     usage(1, msg)
 
 watchStyle = None
@@ -1013,17 +1060,17 @@ for opt, arg in opts:
     if opt == '-s':
         watchStyle = arg
         if watchStyle not in watches:
-            print >> sys.stderr, "Unknown watch style '%s'." % (arg)
+            print("Unknown watch style '%s'." % (arg), file=sys.stderr)
             sys.exit(1)
     elif opt == '-H':
         handStyle = arg
         if handStyle not in hands:
-            print >> sys.stderr, "Unknown hand style '%s'." % (arg)
+            print("Unknown hand style '%s'." % (arg), file=sys.stderr)
             sys.exit(1)
     elif opt == '-F':
         faceStyle = arg
         if faceStyle not in faces:
-            print >> sys.stderr, "Unknown face style '%s'." % (arg)
+            print("Unknown face style '%s'." % (arg), file=sys.stderr)
             sys.exit(1)
     elif opt == '-S':
         suppressSecondHand = True
@@ -1045,7 +1092,7 @@ for opt, arg in opts:
         usage(0)
 
 if not watchStyle:
-    print >> sys.stderr, "You must specify a desired watch style."
+    print("You must specify a desired watch style.", file=sys.stderr)
     sys.exit(1)
 
 watchName, defaultHandStyle, defaultFaceStyle, uuId = watches[watchStyle]
@@ -1091,7 +1138,7 @@ for keyword in defaults:
         defaultDateWindows[i] = 2  # == date
 
 # Map the centers tuple into a dictionary of points for x and y.
-cxd = dict(map(lambda (hand, x, y): (hand, x), centers))
-cyd = dict(map(lambda (hand, x, y): (hand, y), centers))
+cxd = dict((hand, x) for hand, x, y in centers)
+cyd = dict((hand, y) for hand, x, y in centers)
 
 configWatch()

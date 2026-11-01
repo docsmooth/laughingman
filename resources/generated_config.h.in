@@ -68,3 +68,7 @@
 #if %(supportMoon)s
   #define SUPPORT_MOON 1
 #endif
+
+#if %(laughingManFace)s
+  #define LAUGHINGMAN_FACE 1
+#endif

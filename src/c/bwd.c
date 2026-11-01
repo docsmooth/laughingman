@@ -1,6 +1,6 @@
 #include "bwd.h"
 #include "assert.h"
-#include "../resources/generated_config.h"
+#include "../../resources/generated_config.h"
 //#define SUPPORT_RLE
 
 // From bitmapgen.py:
@@ -206,11 +206,11 @@ static int rl2unpacker_getc(Rl2Unpacker *rl2) {
 // eliminate this kind of noise from the source image if it happens to
 // be present.
 void unscreen_bitmap(GBitmap *image) {
-  int height = image->bounds.size.h;
-  int width = image->bounds.size.w;
+  int height = gbitmap_get_bounds(image).size.h;
+  int width = gbitmap_get_bounds(image).size.w;
   int width_bytes = width / 8;
-  int stride = image->row_size_bytes; // multiple of 4, by Pebble convention.
-  uint8_t *data = image->addr;
+  int stride = gbitmap_get_bytes_per_row(image); // multiple of 4, by Pebble convention.
+  uint8_t *data = gbitmap_get_data(image);
 
   uint8_t mask = 0xaa;
   for (int y = 0; y < height; ++y) {
