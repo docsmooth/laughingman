@@ -63,6 +63,9 @@ def main():
     for size in SIZES:
         render_minute_hand(size, True).save(HANDS / f"f_minute_hand_color~{size}w.png")
         render_minute_hand(size, False).save(HANDS / f"f_minute_hand_bw~{size}w.png")
+    for hand in ("hour", "minute"):
+        render_minute_hand(144, True).save(HANDS / f"f_{hand}_hand_color.png")
+        render_minute_hand(144, False).save(HANDS / f"f_{hand}_hand_bw.png")
 
 
 if __name__ == "__main__":

@@ -1,7 +1,7 @@
-This directory contains the code for the "Rosewright" family of watch faces.  Each of these consists basically of a bitmap face image, along with two or more bitmap hands.  These hands are baked into the resource file at several pre-computed orientations, which are switched at runtime to easily and cleanly draw ornate animated watch hands.
+This directory contains the code for the LaughingMan watch face.
 
 You must configure a watch before you can compile this code!
 
-Run the Python 3 script config_watch.py in the root directory to configure a watch.  You must have Python 3 and the Pillow imaging library (PIL) installed to run this script successfully.  Use the command-line option -h to list the available options, or just use "-s a", "-s b", or "-s c" to select styles A, B, or C.
+Run the Python 3 script config_watch.py in the root directory to configure the watch. You must have Python 3 and the Pillow imaging library (PIL) installed to run this script successfully. Use the command-line option -h to list the available options.
 
 Once the watch is configured, the script writes package.json and src/pkjs/index.js, and you may use the pebble tool (RePebble SDK, run from WSL or Linux) to build it in the normal Pebble way.

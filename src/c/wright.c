@@ -1,5 +1,4 @@
 #include "wright.h"
-#include "wright_chrono.h"
 
 #include "../../resources/generated_table.c"
 #include "../../resources/lang_table.c"
