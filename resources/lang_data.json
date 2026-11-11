@@ -155,7 +155,7 @@
       "type": "font",
       "characterRegex": "[\u0030-\u0039\u4e00\u4e09-\u4e0b\u4e8c\u4e94\u516d\u5348\u5468\u56db\u65e5\u6708]",
       "name": "DAY_FONT_ZH_16",
-      "file": "wqy-microhei.ttc"
+      "file": "wqy-microhei.ttf"
     },
     {
       "type": "font",

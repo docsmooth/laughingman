@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#! /usr/bin/env python3
 
 import PIL.Image
 import sys
@@ -19,8 +19,8 @@ Options:
 """
 
 def usage(code, msg = ''):
-    print >> sys.stderr, help
-    print >> sys.stderr, msg
+    print(help, file=sys.stderr)
+    print(msg, file=sys.stderr)
     sys.exit(code)
 
 def unscreen(image):
@@ -49,8 +49,6 @@ def generate_pixels(image, stride):
             # Pad out the row with zeroes.
             yield 0
 
-    raise StopIteration
-
 def generate_rle(source):
     """ This generator yields a sequence of run lengths of a binary
     input--the input is either 0 or 255, so the rle is a simple sequence
@@ -63,13 +61,18 @@ def generate_rle(source):
     # of the image.  The decoder must discard this pixel.  This
     # implicit black pixel ensures that there are no 0 counts anywhere
     # in the resulting data.
-    next = 0
+    nxt = 0
     while True:
-        while current == next:
+        while current == nxt:
             count += 1
-            next = source.next()
+            try:
+                nxt = next(source)
+            except StopIteration:
+                # The final run is never emitted, as in the original
+                # generator, where the exhausted source ended iteration.
+                return
         yield count
-        current = next
+        current = nxt
         count = 0
 
 def count_bits(num):
@@ -86,7 +89,7 @@ def chop_rle(source, n):
     result = ''
     for v in source:
         # Count the minimum number of chunks we need to represent v.
-        numChunks = (count_bits(v) + n - 1) / n
+        numChunks = (count_bits(v) + n - 1) // n
 
         # We write out a number of zeroes to indicate this.
         zeroCount = numChunks - 1
@@ -102,29 +105,29 @@ def chop_rle(source, n):
 def pack_rle(source, n):
     """ Packs a sequence of n-bit chunks into a byte string. """
     seq = list(source)
-    result = ''
+    result = bytearray()
     if n == 1:
         seq += [0, 0, 0, 0, 0, 0, 0]
         for i in range(0, len(seq) - 7, 8):
             v = (seq[i + 0] << 7) | (seq[i + 1] << 6) | (seq[i + 2] << 5) | (seq[i +3] << 4) | (seq[i + 4] << 3) | (seq[i + 5] << 2) | (seq[i + 6] << 1) | (seq[i + 7])
-            result += (chr(v))
+            result.append(v)
     elif n == 2:
         seq += [0, 0, 0]
         for i in range(0, len(seq) - 3, 4):
             v = (seq[i + 0] << 6) | (seq[i + 1] << 4) | (seq[i + 2] << 2) | (seq[i + 3])
-            result += (chr(v))
+            result.append(v)
     elif n == 4:
         seq += [0]
         for i in range(0, len(seq) - 1, 2):
             v = (seq[i + 0] << 4) | (seq[i + 1])
-            result += (chr(v))
+            result.append(v)
     elif n == 8:
         for v in seq:
-            result += chr(v)
+            result.append(v)
     else:
         raise ValueError
 
-    return result
+    return bytes(result)
 
 class Rl2Unpacker:
     """ This class reverses chop_rle() and pack_rle()--it reads a
@@ -135,7 +138,7 @@ class Rl2Unpacker:
 
     def __init__(self, str, n):
         # assumption: n is an integer divisor of 8.
-        assert n * (8 / n) == 8
+        assert n * (8 // n) == 8
           
         self.str = str
         self.n = n
@@ -159,7 +162,7 @@ class Rl2Unpacker:
         
         # First, count the number of zero chunks until we come to a nonzero chunk.
         zeroCount = 0
-        b = ord(self.str[self.si])
+        b = self.str[self.si]
         bmask = (1 << self.n) - 1
         bv = b & (bmask << (self.bi - self.n))
         while bv == 0:
@@ -171,7 +174,7 @@ class Rl2Unpacker:
                 if self.si >= len(self.str):
                     return 0
                 
-                b = ord(self.str[self.si])
+                b = self.str[self.si]
             bv = b & (bmask << (self.bi - self.n))
 
         # Infer from that the number of chunks, and hence the number
@@ -193,7 +196,7 @@ class Rl2Unpacker:
                 b = 0
                 break
 
-            b = ord(self.str[self.si])
+            b = self.str[self.si]
 
         if bitCount > 0:
             # A partial word in the middle of the byte.
@@ -209,12 +212,12 @@ class Rl2Unpacker:
 def make_rle_image(rleFilename, image):
     image = image.convert('1')
     w, h = image.size
-    stride = ((w + 31) / 32) * 4
+    stride = ((w + 31) // 32) * 4
     fullSize = h * stride
     
     if w % 8 != 0:
         # Must be a multiple of 8 pixels wide.  If not, expand it.
-        w = ((w + 7) / 8) * 8
+        w = ((w + 7) // 8) * 8
         im2 = PIL.Image.new('1', (w, h), 0)
         im2.paste(image, (0, 0))
         image = im2
@@ -224,7 +227,7 @@ def make_rle_image(rleFilename, image):
 
     # The number of bytes in a row.  Must be a multiple of 4, per
     # Pebble conventions.
-    stride = ((w + 31) / 32) * 4
+    stride = ((w + 31) // 32) * 4
     assert stride <= 0xff
 
     # Find the best n for this image.
@@ -250,11 +253,11 @@ def make_rle_image(rleFilename, image):
     assert verify == result0
 
     rle = open(rleFilename, 'wb')
-    rle.write('%c%c%c%c' % (w, h, stride, n))
+    rle.write(bytes([w, h, stride, n]))
     rle.write(result)
     rle.close()
     
-    print '%s: %s vs. %s' % (rleFilename, 4 + len(result), fullSize)
+    print('%s: %s vs. %s' % (rleFilename, 4 + len(result), fullSize))
 
 def make_rle(filename, prefix = 'resources/', useRle = True):
     if useRle:
@@ -265,7 +268,7 @@ def make_rle(filename, prefix = 'resources/', useRle = True):
         return rleFilename, 'raw'
     else:
         ptype = 'png'
-        print filename
+        print(filename)
         return filename, 'png'
 
 def make_rle_trans(filename, prefix = 'resources/', useRle = True):
@@ -296,7 +299,7 @@ def make_rle_trans(filename, prefix = 'resources/', useRle = True):
         white.save(prefix + rleWhiteFilename)
         rleBlackFilename = basename + '_black.png'
         black.save(prefix + rleBlackFilename)
-        print filename
+        print(filename)
         return rleWhiteFilename, rleBlackFilename, 'png'
 
 if __name__ == '__main__':
@@ -306,7 +309,7 @@ if __name__ == '__main__':
     makeTrans = False
     try:
         opts, args = getopt.getopt(sys.argv[1:], 'th')
-    except getopt.error, msg:
+    except getopt.error as msg:
         usage(1, msg)
 
     for opt, arg in opts:
@@ -315,7 +318,7 @@ if __name__ == '__main__':
         elif opt == '-h':
             usage(0)
 
-    print args
+    print(args)
     for filename in args:
         if makeTrans:
             make_rle_trans(filename, prefix = '')

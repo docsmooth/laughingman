@@ -1,0 +1,89 @@
+{
+  "name": "laughingman",
+  "author": "@docsmooth",
+  "version": "2.18.0",
+  "keywords": ["pebble-app"],
+  "private": true,
+  "dependencies": {},
+  "pebble": {
+  "displayName": "%(watchName)s",
+  "uuid": "%(uuId)s",
+  "sdkVersion": "3",
+  "enableMultiJS": true,
+  "targetPlatforms": [ "aplite", "basalt", "chalk", "diorite", "emery", "flint", "gabbro" ],
+  "capabilities": [ "configurable" ],
+  "watchapp": {
+    "watchface": %(watchface)s
+  },
+  "messageKeys": [
+    "battery_gauge",
+    "bluetooth_indicator",
+    "second_hand",
+    "hour_buzzer",
+    "draw_mode",
+    "chrono_dial",
+    "sweep_seconds",
+    "display_lang",
+    "face_index",
+    "date_window_a",
+    "date_window_b",
+    "date_window_c",
+    "date_window_d",
+    "bluetooth_buzzer",
+    "lunar_background",
+    "lunar_direction"
+  ],
+  "resources": {
+  "media": [
+    {
+      "menuIcon": true,
+      "name": "ROSE_ICON",
+      "file": "laughingman_icon.png",
+      "type": "png"
+    },
+    {
+      "name": "BATTERY_GAUGE_EMPTY",
+      "file": "battery_gauge_empty.png",
+      "type": "png"
+    },
+    {
+      "name": "BATTERY_GAUGE_CHARGED",
+      "file": "battery_gauge_charged.png",
+      "type": "png"
+    },
+    {
+      "name": "BATTERY_GAUGE_MASK",
+      "file": "battery_gauge_mask.png",
+      "type": "png"
+    },
+    {
+      "name": "CHARGING",
+      "file": "charging.png",
+      "type": "png"
+    },
+    {
+      "name": "CHARGING_MASK",
+      "file": "charging_mask.png",
+      "type": "png"
+    },
+    {
+      "name": "BLUETOOTH_DISCONNECTED",
+      "file": "bluetooth_disconnected.png",
+      "type": "png"
+    },
+    {
+      "name": "BLUETOOTH_CONNECTED",
+      "file": "bluetooth_connected.png",
+      "type": "png"
+    },
+    {
+      "name": "BLUETOOTH_MASK",
+      "file": "bluetooth_mask.png",
+      "type": "png"
+    },
+%(langData)s
+%(generatedMedia)s
+    ]
+  }
+  }
+}
