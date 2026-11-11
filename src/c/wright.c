@@ -20,8 +20,12 @@ GBitmap *laughingman_minute_bitmap;
   #define LAUGHINGMAN_HOUR_RESOURCE RESOURCE_ID_LAUGHINGMAN_HOUR_COLOR
   #define LAUGHINGMAN_MINUTE_RESOURCE RESOURCE_ID_LAUGHINGMAN_MINUTE_COLOR
 #else
+GBitmap *laughingman_hour_mask_bitmap;
+GBitmap *laughingman_hour_highlight_bitmap;
   #define LAUGHINGMAN_HOUR_RESOURCE RESOURCE_ID_LAUGHINGMAN_HOUR_BW
   #define LAUGHINGMAN_MINUTE_RESOURCE RESOURCE_ID_LAUGHINGMAN_MINUTE_BW
+  #define LAUGHINGMAN_HOUR_MASK_RESOURCE RESOURCE_ID_LAUGHINGMAN_HOUR_MASK_BW
+  #define LAUGHINGMAN_HOUR_HIGHLIGHT_RESOURCE RESOURCE_ID_LAUGHINGMAN_HOUR_HIGHLIGHT_BW
 #endif
 #endif
 
@@ -561,6 +565,46 @@ static void draw_laughingman_hand(GContext *ctx, GBitmap **bitmap, int resource_
                                destination_center);
 }
 
+#if !defined(PBL_COLOR)
+static bool load_laughingman_bitmap(GBitmap **bitmap, int resource_id) {
+  if (*bitmap == NULL) {
+    *bitmap = gbitmap_create_with_resource(resource_id);
+  }
+  if (*bitmap == NULL) {
+    trigger_memory_panic(__LINE__);
+    return false;
+  }
+  return true;
+}
+
+static void draw_laughingman_hour_hand(GContext *ctx, int hand_index,
+                                       int hand_steps, int rotation_offset) {
+  if (!load_laughingman_bitmap(&laughingman_hour_bitmap, LAUGHINGMAN_HOUR_RESOURCE) ||
+      !load_laughingman_bitmap(&laughingman_hour_mask_bitmap,
+                                LAUGHINGMAN_HOUR_MASK_RESOURCE) ||
+      !load_laughingman_bitmap(&laughingman_hour_highlight_bitmap,
+                                LAUGHINGMAN_HOUR_HIGHLIGHT_RESOURCE)) {
+    return;
+  }
+
+  GRect bounds = gbitmap_get_bounds(laughingman_hour_bitmap);
+  GPoint source_center = GPoint(bounds.size.w / 2, bounds.size.h / 2);
+  GRect layer_bounds = layer_get_bounds(clock_face_layer);
+  GPoint destination_center = GPoint(layer_bounds.size.w / 2, layer_bounds.size.h / 2);
+  int rotation = TRIG_MAX_ANGLE * hand_index / hand_steps + rotation_offset;
+
+  graphics_context_set_compositing_mode(ctx, GCompOpClear);
+  graphics_draw_rotated_bitmap(ctx, laughingman_hour_mask_bitmap, source_center,
+                               rotation, destination_center);
+  graphics_context_set_compositing_mode(ctx, GCompOpAnd);
+  graphics_draw_rotated_bitmap(ctx, laughingman_hour_bitmap, source_center,
+                               rotation, destination_center);
+  graphics_context_set_compositing_mode(ctx, GCompOpOr);
+  graphics_draw_rotated_bitmap(ctx, laughingman_hour_highlight_bitmap, source_center,
+                               rotation, destination_center);
+}
+#endif
+
 static void draw_laughingman_rings(Layer *layer, GContext *ctx) {
   GRect bounds = layer_get_bounds(layer);
   int radius = bounds.size.w / 2;
@@ -639,9 +683,14 @@ void hour_layer_update_callback(Layer *me, GContext *ctx) {
   //  app_log(APP_LOG_LEVEL_INFO, __FILE__, __LINE__, "hour_layer");
 
 #ifdef LAUGHINGMAN_FACE
+#if defined(PBL_COLOR)
   draw_laughingman_hand(ctx, &laughingman_hour_bitmap, LAUGHINGMAN_HOUR_RESOURCE,
                         current_placement.hour_hand_index, NUM_STEPS_HOUR,
                         TRIG_MAX_ANGLE * 3 / 4);
+#else
+  draw_laughingman_hour_hand(ctx, current_placement.hour_hand_index,
+                             NUM_STEPS_HOUR, TRIG_MAX_ANGLE * 3 / 4);
+#endif
 #else
   draw_hand(&hour_cache, &hour_hand_def, current_placement.hour_hand_index, ctx);
 #endif
@@ -1253,6 +1302,16 @@ void destroy_objects() {
     gbitmap_destroy(laughingman_minute_bitmap);
     laughingman_minute_bitmap = NULL;
   }
+#if !defined(PBL_COLOR)
+  if (laughingman_hour_mask_bitmap != NULL) {
+    gbitmap_destroy(laughingman_hour_mask_bitmap);
+    laughingman_hour_mask_bitmap = NULL;
+  }
+  if (laughingman_hour_highlight_bitmap != NULL) {
+    gbitmap_destroy(laughingman_hour_highlight_bitmap);
+    laughingman_hour_highlight_bitmap = NULL;
+  }
+#endif
 #endif
 
 #ifdef MAKE_CHRONOGRAPH

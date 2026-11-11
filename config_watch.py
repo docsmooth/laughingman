@@ -654,6 +654,22 @@ def makeHands(generatedTable, generatedDefs):
       "targetPlatforms": ["aplite", "diorite", "flint"]
     },
     {
+      "name": "LAUGHINGMAN_HOUR_MASK_BW",
+      "file": "clock_hands/f_hour_hand_mask_bw.png",
+      "type": "bitmap",
+      "memoryFormat": "1Bit",
+      "storageFormat": "pbi",
+      "targetPlatforms": ["aplite", "diorite", "flint"]
+    },
+    {
+      "name": "LAUGHINGMAN_HOUR_HIGHLIGHT_BW",
+      "file": "clock_hands/f_hour_hand_highlight_bw.png",
+      "type": "bitmap",
+      "memoryFormat": "1Bit",
+      "storageFormat": "pbi",
+      "targetPlatforms": ["aplite", "diorite", "flint"]
+    },
+    {
       "name": "LAUGHINGMAN_HOUR_COLOR",
       "file": "clock_hands/f_hour_hand_color.png",
       "type": "bitmap",

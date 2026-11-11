@@ -59,13 +59,41 @@ def render_minute_hand(size, color):
     return monochrome.convert("L").point(lambda value: 255 if value > 127 else 0).convert("1")
 
 
+def render_hour_bw_layers(size):
+    source = Image.open(HANDS / f"f_hour_hand_color~{size}w.png").convert("RGBA")
+    alpha = source.getchannel("A")
+    mask = alpha.point(lambda value: 255 if value >= 128 else 0).convert("1")
+    highlights = Image.new("1", source.size)
+
+    highlight_pixels = [
+        255 if alpha_value >= 128 and red >= 192 and green >= 192 and blue >= 192 else 0
+        for red, green, blue, alpha_value in source.get_flattened_data()
+    ]
+    highlights.putdata(highlight_pixels)
+    return mask, highlights
+
+
 def main():
     for size in SIZES:
         render_minute_hand(size, True).save(HANDS / f"f_minute_hand_color~{size}w.png")
         render_minute_hand(size, False).save(HANDS / f"f_minute_hand_bw~{size}w.png")
-    for hand in ("hour", "minute"):
-        render_minute_hand(144, True).save(HANDS / f"f_{hand}_hand_color.png")
-        render_minute_hand(144, False).save(HANDS / f"f_{hand}_hand_bw.png")
+
+        mask, highlights = render_hour_bw_layers(size)
+        mask.save(HANDS / f"f_hour_hand_mask_bw~{size}w.png")
+        highlights.save(HANDS / f"f_hour_hand_highlight_bw~{size}w.png")
+
+    for color in ("color", "bw"):
+        Image.open(HANDS / f"f_hour_hand_{color}~144w.png").save(
+            HANDS / f"f_hour_hand_{color}.png"
+        )
+    Image.open(HANDS / "f_hour_hand_mask_bw~144w.png").save(
+        HANDS / "f_hour_hand_mask_bw.png"
+    )
+    Image.open(HANDS / "f_hour_hand_highlight_bw~144w.png").save(
+        HANDS / "f_hour_hand_highlight_bw.png"
+    )
+    render_minute_hand(144, True).save(HANDS / "f_minute_hand_color.png")
+    render_minute_hand(144, False).save(HANDS / "f_minute_hand_bw.png")
 
 
 if __name__ == "__main__":
