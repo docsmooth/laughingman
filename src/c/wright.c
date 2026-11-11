@@ -611,6 +611,7 @@ void clock_face_layer_update_callback(Layer *me, GContext *ctx) {
   }
 
   // Load the clock face from the resource file if we haven't already.
+#ifndef LAUGHINGMAN_FACE
   if (clock_face.bitmap == NULL) {
     clock_face = rle_bwd_create(clock_face_table[config.face_index]);
     if (clock_face.bitmap == NULL) {
@@ -625,6 +626,10 @@ void clock_face_layer_update_callback(Layer *me, GContext *ctx) {
   destination.origin.y = 0;
   graphics_context_set_compositing_mode(ctx, draw_mode_table[config.draw_mode].paint_assign);
   graphics_draw_bitmap_in_rect(ctx, clock_face.bitmap, destination);
+#else
+  graphics_context_set_fill_color(ctx, draw_mode_table[config.draw_mode].colors[2]);
+  graphics_fill_rect(ctx, layer_get_bounds(me), 0, GCornerNone);
+#endif
 #ifdef LAUGHINGMAN_FACE
   draw_laughingman_rings(me, ctx);
 #endif
@@ -635,7 +640,8 @@ void hour_layer_update_callback(Layer *me, GContext *ctx) {
 
 #ifdef LAUGHINGMAN_FACE
   draw_laughingman_hand(ctx, &laughingman_hour_bitmap, LAUGHINGMAN_HOUR_RESOURCE,
-                        current_placement.hour_hand_index, NUM_STEPS_HOUR, 0);
+                        current_placement.hour_hand_index, NUM_STEPS_HOUR,
+                        TRIG_MAX_ANGLE * 3 / 4);
 #else
   draw_hand(&hour_cache, &hour_hand_def, current_placement.hour_hand_index, ctx);
 #endif
