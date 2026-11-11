@@ -65,9 +65,14 @@ def render_hour_bw_layers(size):
     mask = alpha.point(lambda value: 255 if value >= 128 else 0).convert("1")
     highlights = Image.new("1", source.size)
 
+    pixels = source.load()
     highlight_pixels = [
-        255 if alpha_value >= 128 and red >= 192 and green >= 192 and blue >= 192 else 0
-        for red, green, blue, alpha_value in source.get_flattened_data()
+        255 if (
+            pixels[x, y][3] >= 128 and
+            all(channel >= 192 for channel in pixels[x, y][:3])
+        ) else 0
+        for y in range(size)
+        for x in range(size)
     ]
     highlights.putdata(highlight_pixels)
     return mask, highlights
